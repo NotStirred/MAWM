@@ -1,0 +1,9 @@
+{
+  "package": "io.github.notstirred.mawm.asm.mixin.core",
+  "refmap": "mixins.mawm.refmap.json",
+  "target": "@env(DEFAULT)",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinMinecraftServer"
+  ]
+}

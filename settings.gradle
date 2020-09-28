@@ -1,0 +1,18 @@
+rootProject.name = 'mawm'
+System.setProperty("cubicchunks.isStandaloneBuild", "false")
+
+// include CCC as subproject if it exists
+//if (file("CubicChunksConverter").exists()) {
+//    println("Including build at ./CubicChunksConverter/ in composite build")
+//    includeBuild("CubicChunksConverter") {
+//        dependencySubstitution {
+//            substitute module('io.github.opencubicchunks:cubicchunksconverter') with project(':')
+//        }
+//    }
+//}
+
+includeBuild("CubicChunks") {
+    dependencySubstitution {
+        substitute module('io.github.opencubicchunks:cubicchunks') with project(':')
+    }
+}

@@ -1,0 +1,6 @@
+[submodule "CubicChunksConverter"]
+	path = CubicChunksConverter
+	url = https://github.com/OpenCubicChunks/CubicChunksConverter
+[submodule "CubicChunks"]
+	path = CubicChunks
+	url = https://github.com/OpenCubicChunks/CubicChunks

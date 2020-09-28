@@ -1,0 +1,134 @@
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
+        mavenCentral()
+        maven {
+            name = 'sponge'
+            url = 'https://repo.spongepowered.org/maven'
+        }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.0'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+    }
+}
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '4.0.0'
+    id 'java'
+}
+shadowJar {
+    dependencies {
+        exclude(dependency {
+            it.moduleGroup != 'org.spongepowered'
+        })
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'org.spongepowered.mixin'
+
+version = '1.0'
+group = 'io.github.notstirred' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = 'mawm'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+tasks.findByName("build").dependsOn(tasks.findByName("shadowJar"))
+
+jar {
+    manifest {
+        attributes([
+                "Specification-Title": "mawm",
+                "Specification-Vendor": "",
+                "Specification-Version": "1",
+                "Implementation-Title": project.name,
+                "Implementation-Version": "${version}",
+                "Implementation-Vendor" :"",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+                'MixinConfigs': 'mixins.mawm.json',
+                'FMLCorePluginContainsFMLMod': 'true'
+        ])
+    }
+}
+
+repositories {
+    maven { setUrl("https://oss.sonatype.org/content/repositories/public/") }
+    maven {
+        name = 'sponge'
+        url = 'https://repo.spongepowered.org/maven'
+    }
+}
+
+dependencies {
+    implementation 'org.spongepowered:mixin:0.8'
+
+    testCompile("junit:junit:4.11")
+    implementation("io.github.opencubicchunks:cubicchunksconverter:1.73.0-SNAPSHOT")
+    implementation("io.github.opencubicchunks:cubicchunks:1.12.2-0.0-SNAPSHOT")
+}
+mixin {
+    add sourceSets.main, "mixins.mawm.refmap.json"
+}
+
+configurations.all { resolutionStrategy { force("com.google.guava:guava:21.0") } }
+
+processResources {
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+
+    // copy everything else except the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+minecraft {
+    version = "1.12.2-14.23.5.2847"
+    runDir = "run"
+    mappings = "stable_39"
+
+    def args = [
+            "-Dfml.coreMods.load=io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod", //the core mod class, needed for mixins
+            "-Dmixin.env.compatLevel=JAVA_8", //needed to use java 8 when using mixins
+            "-Dmixin.debug.verbose=true", //verbose mixin output for easier debugging of mixins
+            "-Dmixin.debug.export=true", //export classes from mixin to runDirectory/.mixin.out
+            "-Dcubicchunks.debug=true", //various debug options of cubic chunks mod. Adds items that are not normally there!
+            "-XX:-OmitStackTraceInFastThrow", //without this sometimes you end up with exception with empty stacktrace
+            "-Dmixin.checks.interfaces=true", //check if all interface methods are overriden in mixin
+            "-Dfml.noGrab=false", //change to disable Minecraft taking control over mouse
+            "-ea", //enable assertions
+            "-da:io.netty..." //disable netty assertions because they sometimes fail
+    ]
+
+    clientJvmArgs.addAll(args)
+    serverJvmArgs.addAll(args)
+}
+
+publishing {
+    publications {
+        mod(MavenPublication) {
+            groupId = 'org.gradle.sample'
+            artifactId = 'project1-sample'
+            version = '1.1'
+
+            from components.java
+        }
+    }
+}
+//com.google.guava:guava:21.0

@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "mawm",
+    "name": "Massively Asynchronous World Manipulator",
+    "description": "",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "NotStirred"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
