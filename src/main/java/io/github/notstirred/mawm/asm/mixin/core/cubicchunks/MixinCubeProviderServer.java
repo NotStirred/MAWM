@@ -1,18 +1,27 @@
 package io.github.notstirred.mawm.asm.mixin.core.cubicchunks;
 
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeWatcher;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerCubeMap;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.opencubicchunks.cubicchunks.api.util.XYZMap;
 import io.github.opencubicchunks.cubicchunks.api.util.XZMap;
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
-import io.github.opencubicchunks.cubicchunks.api.world.ICube;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubeProviderServer;
+import io.github.opencubicchunks.cubicchunks.api.worldgen.CubePrimer;
 import io.github.opencubicchunks.cubicchunks.api.worldgen.ICubeGenerator;
+import io.github.opencubicchunks.cubicchunks.core.asm.mixin.core.common.IPlayerChunkMapEntry;
+import io.github.opencubicchunks.cubicchunks.core.server.ColumnWatcher;
 import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer;
+import io.github.opencubicchunks.cubicchunks.core.server.CubeWatcher;
+import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap;
 import io.github.opencubicchunks.cubicchunks.core.server.chunkio.ICubeIO;
 import io.github.opencubicchunks.cubicchunks.core.server.chunkio.async.forge.AsyncWorldIOExecutor;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.BlankCube;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
@@ -31,6 +40,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Mixin(value = CubeProviderServer.class, remap = false)
@@ -51,6 +64,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
 
     private XZMap<IColumn> newFrozenColumns = new XZMap<>(0.75f, 1000);
     private XYZMap<Cube> newFrozenCubes = new XYZMap<>(0.75f, 1000);
+
+    private static CubePrimer barrierPrimer = createBarrierCubePrimer();
 
     public MixinCubeProviderServer(WorldServer worldObjIn, IChunkLoader chunkLoaderIn, IChunkGenerator chunkGeneratorIn) {
         super(worldObjIn, chunkLoaderIn, chunkGeneratorIn);
@@ -142,10 +157,10 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         if (column == null) {
             return cube; // Column did not reach req, so Cube also does not
         }
-        //TODO: if cube is in frozen area, return blankCube
         if(((IFreezableWorld)worldServer).isCubeFrozen(cubeX, cubeY, cubeZ)) {
+            cube = newFrozenCubes.get(cubeX,cubeY,cubeZ);
             if(cube == null) {
-                cube = new Cube(column, cubeY);
+                cube = createBarrierCube(column, cubeX, cubeY, cubeZ);
                 newFrozenCubes.put(cube);
                 cube.onLoad();
             }
@@ -180,7 +195,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
                     callback.accept(null);
                     return;
                 }
-                cube = new Cube(column, cubeY);
+                cube = createBarrierCube(column, cubeX, cubeY, cubeZ);
                 newFrozenCubes.put(cube);
                 cube.onLoad();
             }
@@ -236,9 +251,57 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
 
     @Override
     public void unfreeze() {
-        newFrozenCubes.iterator().forEachRemaining(Cube::onUnload);
-        newFrozenCubes.clear();
-        newFrozenColumns.iterator().forEachRemaining(col -> ((Chunk)col).onUnload());
+        PlayerCubeMap map = ((PlayerCubeMap)worldServer.getPlayerChunkMap());
+
+        Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap = new IdentityHashMap<>(newFrozenCubes.getSize());
+        Map<IColumn, List<EntityPlayerMP>> columnPlayerMap = new IdentityHashMap<>(newFrozenCubes.getSize());
+
+        newFrozenCubes.iterator().forEachRemaining(cube -> {
+            CubeWatcher cubeWatcher = map.getCubeWatcher(cube.getCoords());
+            if(cubeWatcher != null) {
+                ObjectArrayList<EntityPlayerMP> players = ((AccessCubeWatcher) cubeWatcher).getPlayers().clone();
+                cubePlayerMap.put(cube, players);
+                players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeRemovePlayer);
+            }
+            cube.onUnload();
+        });
+        this.newFrozenCubes = new XYZMap<>(0.75f, 1000);
+
+        newFrozenColumns.iterator().forEachRemaining(col -> {
+            ColumnWatcher columnWatcher = map.getColumnWatcher(((Chunk)col).getPos());
+            if(columnWatcher != null) {
+                List<EntityPlayerMP> players = new ArrayList<>(((IPlayerChunkMapEntry) columnWatcher).getPlayerList());
+                columnPlayerMap.put(col, players);
+                players.forEach(columnWatcher:: removePlayer);
+            }
+            ((Chunk) col).onUnload();
+        });
         newFrozenColumns.clear();
+        columnPlayerMap.forEach((col, players) -> {
+            ColumnWatcher columnWatcher = ((AccessPlayerCubeMap)map).invokeGetOrCreateColumnWatcher(new ChunkPos(col.getX(), col.getZ()));
+            players.forEach(columnWatcher::addPlayer);
+        });
+
+        cubePlayerMap.forEach((cube, players) -> {
+            CubeWatcher cubeWatcher = ((AccessPlayerCubeMap) map).invokeGetOrCreateCubeWatcher(cube.getCoords());
+            players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeAddPlayer);
+        });
+    }
+
+    private Cube createBarrierCube(Chunk column, int cubeX, int cubeY, int cubeZ) {
+        Cube cube = new Cube(column, cubeY, barrierPrimer);
+        cube.setClientCube();
+        return cube;
+    }
+    private static CubePrimer createBarrierCubePrimer() {
+        CubePrimer primer = new CubePrimer();
+        for (int x = 0; x < 16; x++) {
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    primer.setBlockState(x, y, z, Blocks.BARRIER.getDefaultState());
+                }
+            }
+        }
+        return primer;
     }
 }

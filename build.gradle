@@ -19,13 +19,9 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '4.0.0'
     id 'java'
 }
-shadowJar {
-    dependencies {
-        exclude(dependency {
-            it.moduleGroup != 'org.spongepowered'
-        })
-    }
-}
+
+build.dependsOn(tasks.findByName("shadowJar"))
+
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'eclipse'
@@ -38,8 +34,6 @@ group = 'io.github.notstirred' // http://maven.apache.org/guides/mini/guide-nami
 archivesBaseName = 'mawm'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
-
-tasks.findByName("build").dependsOn(tasks.findByName("shadowJar"))
 
 jar {
     manifest {
@@ -66,15 +60,25 @@ repositories {
     }
 }
 
+configurations {
+    shadow
+    implementation.extendsFrom(shadow)
+}
+
 dependencies {
-    implementation 'org.spongepowered:mixin:0.8'
+    shadow('org.spongepowered:mixin:0.8') {
+        transitive = false
+    }
 
     testCompile("junit:junit:4.11")
-    implementation("io.github.opencubicchunks:cubicchunksconverter:1.73.0-SNAPSHOT")
+    shadow("io.github.opencubicchunks:cubicchunksconverter:1.73.0-SNAPSHOT")
     implementation("io.github.opencubicchunks:cubicchunks:1.12.2-0.0-SNAPSHOT")
 }
 mixin {
     add sourceSets.main, "mixins.mawm.refmap.json"
+}
+shadowJar {
+    configurations = [project.configurations.shadow]
 }
 
 configurations.all { resolutionStrategy { force("com.google.guava:guava:21.0") } }

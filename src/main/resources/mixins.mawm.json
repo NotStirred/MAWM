@@ -8,6 +8,10 @@
     "cubicchunks.MixinChunkColumn",
     "cubicchunks.MixinCube",
     "cubicchunks.MixinCubeProviderServer",
+    "cubicchunks.server.AccessColumnWatcher",
+    "cubicchunks.server.AccessCubeWatcher",
+    "cubicchunks.server.AccessPlayerCubeMap",
+    "cubicchunks.server.io.MixinRegionCubeIO",
     "cubicchunks.world.server.MixinWorldServer"
   ]
 }

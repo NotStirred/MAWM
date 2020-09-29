@@ -1,1 +1,4 @@
 mawm.command.debug.invalidboundingbox=Invalid Bounding Box!
+mawm.command.debug.freezebox.success=Box added to frozen boxes!
+mawm.command.debug.freeze.success=Frozen!
+mawm.command.debug.unfreeze.success=Unfrozen!

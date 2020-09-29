@@ -2,10 +2,12 @@ package io.github.notstirred.mawm.commands.debug;
 
 import cubicchunks.converter.lib.util.BoundingBox;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.util.FreezableBox;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.server.command.TextComponentHelper;
 
 public class CommandFreezeBox extends CommandBase {
     @Override
@@ -20,19 +22,19 @@ public class CommandFreezeBox extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        BoundingBox box;
+        FreezableBox box;
         try {
-            box = new BoundingBox(Integer.parseInt(args[0]),
+            box = new FreezableBox(args[0] == "read" ? FreezableBox.Type.Read : FreezableBox.Type.Write,
                     Integer.parseInt(args[1]),
                     Integer.parseInt(args[2]),
                     Integer.parseInt(args[3]),
                     Integer.parseInt(args[4]),
-                    Integer.parseInt(args[5]));
+                    Integer.parseInt(args[5]),
+                    Integer.parseInt(args[6]));
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             throw new CommandException("mawm.command.debug.invalidboundingbox");
         }
-
-        ((IFreezableWorld) sender.getEntityWorld()).freezeBox(box);
-
+        ((IFreezableWorld) sender.getEntityWorld()).addFreezeBox(box);
+        sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.debug.freezebox.success"));
     }
 }

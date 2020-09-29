@@ -1,33 +1,18 @@
 package io.github.notstirred.mawm;
 
-import com.google.common.eventbus.Subscribe;
+import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.server.command.ForgeCommand;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /* TODO: everything
-CubeWatcher
-	- isFrozen flag
-
-PlayerCubeMap
-	- tick
-		l342 filter frozen ColumnWatchers
-		l370 filter frozen ColumnWatchers
 RegionCubeIO
-	- for windows bin everything, need a custom SimpleRegionProvider
-		- freeze
-		- flush columnsToSave & cubesToSave
-		- close regions (if windows is bad)
-		- do converter stuff
-	- for linux, we fine
-	    - freeze
-	    - do converter stuff
-drop newFrozenCubes and Columns
-drop -> reload all writeFrozenCubes and Columns
+    - freeze
+    - do converter stuff
+drop -> reload all writeFrozenCubes and writeFrozenColumns
  */
 
 @Mod(
@@ -51,6 +36,7 @@ public class MAWM {
     public void serverStarting(FMLServerStartingEvent evt)
     {
         evt.registerServerCommand(new CommandFreezeBox());
+        evt.registerServerCommand(new CommandFreeze());
         evt.registerServerCommand(new CommandUnfreeze());
     }
 }
