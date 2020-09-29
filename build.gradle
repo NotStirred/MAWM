@@ -104,7 +104,7 @@ minecraft {
     mappings = "stable_39"
 
     def args = [
-            "-Dfml.coreMods.load=io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod", //the core mod class, needed for mixins
+            "-Dfml.coreMods.load=io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod,io.github.notstirred.mawm.asm.MAWMCoreMod", //the core mod class, needed for mixins
             "-Dmixin.env.compatLevel=JAVA_8", //needed to use java 8 when using mixins
             "-Dmixin.debug.verbose=true", //verbose mixin output for easier debugging of mixins
             "-Dmixin.debug.export=true", //export classes from mixin to runDirectory/.mixin.out

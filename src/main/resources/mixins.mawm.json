@@ -4,6 +4,10 @@
   "target": "@env(DEFAULT)",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "MixinMinecraftServer"
+    "MixinMinecraftServer",
+    "cubicchunks.MixinChunkColumn",
+    "cubicchunks.MixinCube",
+    "cubicchunks.MixinCubeProviderServer",
+    "cubicchunks.world.server.MixinWorldServer"
   ]
 }
