@@ -1,9 +1,12 @@
 package io.github.notstirred.mawm.asm.mixin.core.cubicchunks;
 
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeWatcher;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerChunkMapEntry;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerCubeMap;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.util.ticket.AccessTicketList;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import io.github.opencubicchunks.cubicchunks.api.util.XYZMap;
 import io.github.opencubicchunks.cubicchunks.api.util.XZMap;
 import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
@@ -17,6 +20,7 @@ import io.github.opencubicchunks.cubicchunks.core.server.CubeWatcher;
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap;
 import io.github.opencubicchunks.cubicchunks.core.server.chunkio.ICubeIO;
 import io.github.opencubicchunks.cubicchunks.core.server.chunkio.async.forge.AsyncWorldIOExecutor;
+import io.github.opencubicchunks.cubicchunks.core.util.ticket.TicketList;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.BlankCube;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -40,25 +44,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.function.Consumer;
 
 @Mixin(value = CubeProviderServer.class, remap = false)
 public abstract class MixinCubeProviderServer extends ChunkProviderServer implements ICubeProviderServer, IFreezableCubeProviderServer {
 
-    @Shadow private WorldServer worldServer;
-    @Shadow private ICubeIO cubeIO;
+    @Shadow
+    private WorldServer worldServer;
+    @Shadow
+    private ICubeIO cubeIO;
 
-    @Shadow @Nullable protected abstract Chunk postProcessColumn(int columnX, int columnZ, @Nullable Chunk column, ICubeProviderServer.Requirement req);
+    @Shadow
+    @Nullable
+    protected abstract Chunk postProcessColumn(int columnX, int columnZ, @Nullable Chunk column, ICubeProviderServer.Requirement req);
 
-    @Shadow protected abstract void onCubeLoaded(@Nullable Cube cube, Chunk column);
+    @Shadow
+    protected abstract void onCubeLoaded(@Nullable Cube cube, Chunk column);
 
-    @Shadow @Nullable protected abstract Cube postCubeLoadAttempt(int cubeX, int cubeY, int cubeZ, @Nullable Cube cube, Chunk column, ICubeProviderServer.Requirement req);
+    @Shadow
+    @Nullable
+    protected abstract Cube postCubeLoadAttempt(int cubeX, int cubeY, int cubeZ, @Nullable Cube cube, Chunk column, ICubeProviderServer.Requirement req);
 
-    @Shadow @Nonnull private XYZMap<Cube> cubeMap;
+    @Shadow
+    @Nonnull
+    private XYZMap<Cube> cubeMap;
+
+    @Shadow
+    abstract boolean tryUnloadCube(Cube cube);
+
+    @Shadow
+    abstract boolean tryUnloadColumn(Chunk column);
+
     private Cube blankCube;
     private Chunk emptyColumn;
 
@@ -78,16 +96,18 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
     }
 
     //If cube is read frozen, return null
+
     /**
      * @author NotStirred
      * @reason freezable columns
      */
     @Overwrite
-    @Override @Nullable
+    @Override
+    @Nullable
     public Chunk getLoadedColumn(int columnX, int columnZ) {
         Chunk chunk = this.loadedChunks.get(ChunkPos.asLong(columnX, columnZ));
-        if(chunk == null)
-            return (Chunk) newFrozenColumns.get(columnX,columnZ);
+        if (chunk == null)
+            return (Chunk) newFrozenColumns.get(columnX, columnZ);
         return chunk;
     }
 
@@ -96,18 +116,19 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
      * @reason freezable columns
      */
     @Overwrite
-    @Override @Nullable
+    @Override
+    @Nullable
     public Chunk getColumn(int columnX, int columnZ, ICubeProviderServer.Requirement req) {
         Chunk column = this.getLoadedChunk(columnX, columnZ);
-        if(column != null) {
+        if (column != null) {
             return column;
         }
         //TODO: if column is in frozen area, return emptyColumn
-        if(((IFreezableWorld)worldServer).isColumnFrozen(columnX, columnZ)) {
+        if (((IFreezableWorld) worldServer).isColumnFrozen(columnX, columnZ)) {
             Chunk chunk = (Chunk) newFrozenColumns.get(columnX, columnZ);
-            if(chunk == null) {
+            if (chunk == null) {
                 chunk = new Chunk(worldServer, new ChunkPrimer(), columnX, columnZ);
-                newFrozenColumns.put((IColumn)chunk);
+                newFrozenColumns.put((IColumn) chunk);
                 chunk.onLoad();
             }
             return chunk;
@@ -124,18 +145,20 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
     }
 
     //If cube is read frozen, return null
+
     /**
      * @author NotStirred
      * @reason freezable cubes
      */
     @Overwrite
-    @Override @Nullable
+    @Override
+    @Nullable
     public Cube getLoadedCube(int cubeX, int cubeY, int cubeZ) {
         Cube cube = this.cubeMap.get(cubeX, cubeY, cubeZ);
-        if(cube != null) {
+        if (cube != null) {
             return cube;
         }
-        return (Cube) newFrozenCubes.get(cubeX,cubeY,cubeZ);
+        return newFrozenCubes.get(cubeX, cubeY, cubeZ);
     }
 
     /**
@@ -143,7 +166,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
      * @reason freezable cubes
      */
     @Overwrite
-    @Override @Nullable
+    @Override
+    @Nullable
     public Cube getCube(int cubeX, int cubeY, int cubeZ, ICubeProviderServer.Requirement req) {
         Cube cube = getLoadedCube(cubeX, cubeY, cubeZ);
 
@@ -157,9 +181,9 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         if (column == null) {
             return cube; // Column did not reach req, so Cube also does not
         }
-        if(((IFreezableWorld)worldServer).isCubeFrozen(cubeX, cubeY, cubeZ)) {
-            cube = newFrozenCubes.get(cubeX,cubeY,cubeZ);
-            if(cube == null) {
+        if (((IFreezableWorld) worldServer).isCubeFrozen(cubeX, cubeY, cubeZ)) {
+            cube = newFrozenCubes.get(cubeX, cubeY, cubeZ);
+            if (cube == null) {
                 cube = createBarrierCube(column, cubeX, cubeY, cubeZ);
                 newFrozenCubes.put(cube);
                 cube.onLoad();
@@ -170,7 +194,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         if (cube == null) {
             // a little hack to fix StackOverflowError when loading TileEntities, as Cube methods are now redirected into IColumn
             // Column needs cube to be loaded to add TileEntity, so make CubeProvider contain it already
-            cube = AsyncWorldIOExecutor.syncCubeLoad(worldServer, cubeIO, (CubeProviderServer)(Object)this, cubeX, cubeY, cubeZ);
+            cube = AsyncWorldIOExecutor.syncCubeLoad(worldServer, cubeIO, (CubeProviderServer) (Object) this, cubeX, cubeY, cubeZ);
             onCubeLoaded(cube, column);
         }
         return postCubeLoadAttempt(cubeX, cubeY, cubeZ, cube, column, req);
@@ -188,10 +212,10 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             return;
         }
 
-        if(((IFreezableWorld)worldServer).isCubeFrozen(cubeX, cubeY, cubeZ)) {
-            if(cube == null) {
+        if (((IFreezableWorld) worldServer).isCubeFrozen(cubeX, cubeY, cubeZ)) {
+            if (cube == null) {
                 Chunk column = getColumn(cubeX, cubeZ, req);
-                if(column == null) {
+                if (column == null) {
                     callback.accept(null);
                     return;
                 }
@@ -203,7 +227,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             return;
         }
         if (cube == null) {
-            AsyncWorldIOExecutor.queueCubeLoad(worldServer, cubeIO, (CubeProviderServer)(Object)this, cubeX, cubeY, cubeZ, loaded -> {
+            AsyncWorldIOExecutor.queueCubeLoad(worldServer, cubeIO, (CubeProviderServer) (Object) this, cubeX, cubeY, cubeZ, loaded -> {
                 Chunk col = getLoadedColumn(cubeX, cubeZ);
                 if (col != null) {
                     onCubeLoaded(loaded, col);
@@ -226,10 +250,11 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             return;
         }
 
-        if(((IFreezableWorld)worldServer).isColumnFrozen(columnX, columnZ)) {
+        if (((IFreezableWorld) worldServer).isColumnFrozen(columnX, columnZ)) {
             Chunk frozenColumn = (Chunk) newFrozenColumns.get(columnX, columnZ);
-            if(frozenColumn == null) {
+            if (frozenColumn == null) {
                 frozenColumn = new Chunk(worldServer, columnX, columnZ);
+                //noinspection ConstantConditions
                 newFrozenColumns.put((IColumn) frozenColumn);
                 frozenColumn.onLoad();
             }
@@ -244,55 +269,122 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
 
     @Inject(method = "tryUnloadColumn", at = @At("HEAD"), cancellable = true)
     private void on$tryUnloadColumn(Chunk column, CallbackInfoReturnable<Boolean> cir) {
-        if(((IFreezableWorld)worldServer).isColumnFrozen(column)) {
+        if (((IFreezableWorld) worldServer).isColumnFrozen(column)) {
             cir.setReturnValue(false);
         }
     }
 
     @Override
-    public void unfreeze() {
-        PlayerCubeMap map = ((PlayerCubeMap)worldServer.getPlayerChunkMap());
+    public void unfreezeReload(AccessPlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap) {
+        columnPlayerMap.forEach((col, players) -> {
+            ColumnWatcher columnWatcher = map.invokeGetOrCreateColumnWatcher(new ChunkPos(col.getX(), col.getZ()));
+            players.forEach(columnWatcher::addPlayer);
+        });
 
-        Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap = new IdentityHashMap<>(newFrozenCubes.getSize());
-        Map<IColumn, List<EntityPlayerMP>> columnPlayerMap = new IdentityHashMap<>(newFrozenCubes.getSize());
+        cubePlayerMap.forEach((cube, players) -> {
+            CubeWatcher cubeWatcher = map.invokeGetOrCreateCubeWatcher(cube.getCoords());
+            players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeAddPlayer);
+        });
 
+        dstCubesToReload.forEach(
+                (pair) -> this.asyncGetCube(pair.getKey().getX(), pair.getKey().getY(), pair.getKey().getZ(), Requirement.LOAD,
+                        (cube) -> ((AccessTicketList) pair.getValue()).getTickets().forEach(cube.getTickets()::add))
+        );
+    }
+
+    @Override
+    public void unfreezeUnload(PlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap) {
         newFrozenCubes.iterator().forEachRemaining(cube -> {
             CubeWatcher cubeWatcher = map.getCubeWatcher(cube.getCoords());
-            if(cubeWatcher != null) {
+            if (cubeWatcher != null) {
                 ObjectArrayList<EntityPlayerMP> players = ((AccessCubeWatcher) cubeWatcher).getPlayers().clone();
                 cubePlayerMap.put(cube, players);
                 players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeRemovePlayer);
             }
             cube.onUnload();
+            cube.getColumn().removeCube(cube.getY());
         });
         this.newFrozenCubes = new XYZMap<>(0.75f, 1000);
 
+        for (Iterator<Cube> iterator = cubeMap.iterator(); iterator.hasNext(); ) {
+            Cube cube = iterator.next();
+            if (!((IFreezableWorld) world).isCubeDst(cube))
+                continue;
+
+            CubeWatcher cubeWatcher = map.getCubeWatcher(cube.getCoords());
+            if (cubeWatcher != null) {
+                ObjectArrayList<EntityPlayerMP> players = ((AccessCubeWatcher) cubeWatcher).getPlayers().clone();
+                cubePlayerMap.put(cube, players);
+                players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeRemovePlayer);
+            }
+            cube.onUnload();
+            cube.getColumn().removeCube(cube.getY());
+            iterator.remove();
+
+            dstCubesToReload.add(new SimpleEntry<>(cube.getCoords(), cube.getTickets()));
+        }
+
         newFrozenColumns.iterator().forEachRemaining(col -> {
-            ColumnWatcher columnWatcher = map.getColumnWatcher(((Chunk)col).getPos());
-            if(columnWatcher != null) {
+            ColumnWatcher columnWatcher = map.getColumnWatcher(((Chunk) col).getPos());
+            if (columnWatcher != null) {
                 List<EntityPlayerMP> players = new ArrayList<>(((IPlayerChunkMapEntry) columnWatcher).getPlayerList());
                 columnPlayerMap.put(col, players);
-                players.forEach(columnWatcher:: removePlayer);
+                players.forEach(columnWatcher::removePlayer);
             }
             ((Chunk) col).onUnload();
         });
         newFrozenColumns.clear();
-        columnPlayerMap.forEach((col, players) -> {
-            ColumnWatcher columnWatcher = ((AccessPlayerCubeMap)map).invokeGetOrCreateColumnWatcher(new ChunkPos(col.getX(), col.getZ()));
-            players.forEach(columnWatcher::addPlayer);
-        });
 
-        cubePlayerMap.forEach((cube, players) -> {
-            CubeWatcher cubeWatcher = ((AccessPlayerCubeMap) map).invokeGetOrCreateCubeWatcher(cube.getCoords());
-            players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeAddPlayer);
-        });
+        for (Iterator<Chunk> iterator = loadedChunks.values().iterator(); iterator.hasNext(); ) {
+            Chunk chunk = iterator.next();
+            if (!((IFreezableWorld) world).isColumnDst(chunk))
+                continue;
+
+            ColumnWatcher columnWatcher = map.getColumnWatcher(chunk.getPos());
+            if (columnWatcher != null) {
+                List<EntityPlayerMP> players = new ArrayList<>(((AccessPlayerChunkMapEntry) columnWatcher).getPlayerList());
+                columnPlayerMap.put((IColumn) chunk, players);
+                players.forEach(columnWatcher::removePlayer);
+            }
+            chunk.onUnload();
+            iterator.remove();
+        }
     }
 
+    @Override
+    public void freeze() {
+        forceSaveSrcCubes();
+    }
+
+    private void forceSaveSrcCubes() {
+        Iterator<Cube> cubeIt = this.cubeMap.iterator();
+        while (cubeIt.hasNext()) {
+            Cube cube = cubeIt.next();
+            if (((IFreezableWorld) worldServer).isCubeSrc(cube)) {
+                if (tryUnloadCube(cube)) {
+                    cubeIt.remove();
+                }
+            }
+        }
+
+        Iterator<Chunk> columnIt = loadedChunks.values().iterator();
+        while (columnIt.hasNext()) {
+            Chunk chunk = columnIt.next();
+            if (((IFreezableWorld) worldServer).isColumnSrc(chunk)) {
+                if (tryUnloadColumn(chunk)) {
+                    columnIt.remove();
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
     private Cube createBarrierCube(Chunk column, int cubeX, int cubeY, int cubeZ) {
         Cube cube = new Cube(column, cubeY, barrierPrimer);
         cube.setClientCube();
         return cube;
     }
+
     private static CubePrimer createBarrierCubePrimer() {
         CubePrimer primer = new CubePrimer();
         for (int x = 0; x < 16; x++) {

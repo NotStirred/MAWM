@@ -20,18 +20,6 @@ public class MixinCube implements IFreezableCube {
 
     @Shadow @Final @Nonnull private TicketList tickets;
     private static FrozenTicket frozenTicket = new FrozenTicket();
-    private boolean isCubeReadFrozen = false;
-    private boolean isCubeWriteFrozen = false;
-
-    @Override
-    public boolean isCubeReadFrozen() {
-        return isCubeReadFrozen;
-    }
-
-    @Override
-    public boolean isCubeWriteFrozen() {
-        return isCubeWriteFrozen;
-    }
 
     @Override
     public void freeze() {

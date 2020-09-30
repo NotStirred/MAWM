@@ -1,6 +1,5 @@
 package io.github.notstirred.mawm.commands.debug;
 
-import cubicchunks.converter.lib.util.BoundingBox;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.util.FreezableBox;
 import net.minecraft.command.CommandBase;
@@ -24,7 +23,7 @@ public class CommandFreezeBox extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         FreezableBox box;
         try {
-            box = new FreezableBox(args[0] == "read" ? FreezableBox.Type.Read : FreezableBox.Type.Write,
+            box = new FreezableBox(args[0].equals("dst") ? FreezableBox.Type.DESTINATION : FreezableBox.Type.SOURCE,
                     Integer.parseInt(args[1]),
                     Integer.parseInt(args[2]),
                     Integer.parseInt(args[3]),

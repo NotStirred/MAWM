@@ -7,19 +7,6 @@ import org.spongepowered.asm.mixin.Mixin;
 @Mixin(Chunk.class)
 public class MixinChunkColumn implements IFreezableColumn {
 
-    private boolean isColumnReadFrozen = false;
-    private boolean isColumnWriteFrozen = false;
-
-    @Override
-    public boolean isColumnReadFrozen() {
-        return isColumnReadFrozen;
-    }
-
-    @Override
-    public boolean isColumnWriteFrozen() {
-        return isColumnWriteFrozen;
-    }
-
     @Override
     public void freeze() { }
     @Override

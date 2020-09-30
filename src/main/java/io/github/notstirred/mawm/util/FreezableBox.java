@@ -6,7 +6,7 @@ import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 
 public class FreezableBox {
-    public enum Type { Read, Write }
+    public enum Type {DESTINATION, SOURCE}
 
     private BoundingBox box;
     private Type type;
@@ -30,13 +30,13 @@ public class FreezableBox {
     }
 
     public boolean isCubeReadFrozen(int x, int y, int z) {
-        if(type == Type.Read) {
+        if(type == Type.DESTINATION) {
             return box.intersects(x, y, z);
         }
         return false;
     }
     public boolean isCubeWriteFrozen(int x, int y, int z) {
-        if(type == Type.Write) {
+        if(type == Type.SOURCE) {
             return box.intersects(x, y, z);
         }
         return false;
@@ -46,13 +46,13 @@ public class FreezableBox {
     }
 
     public boolean isColumnReadFrozen(int x, int z) {
-        if(type == Type.Read) {
+        if(type == Type.DESTINATION) {
             return box.columnIntersects(x, z);
         }
         return false;
     }
     public boolean isColumnWriteFrozen(int x, int z) {
-        if(type == Type.Write) {
+        if(type == Type.SOURCE) {
             return box.columnIntersects(x, z);
         }
         return false;
@@ -62,28 +62,34 @@ public class FreezableBox {
     }
 
     public boolean is2dRegionReadFrozen(EntryLocation2D entry) {
-        if(type == Type.Read) {
+        if(type == Type.DESTINATION) {
             return box.asRegionCoords(new Vector3i(32, 32, 32)).columnIntersects(entry.getEntryX(), entry.getEntryZ());
         }
         return false;
     }
     public boolean is2dRegionWriteFrozen(EntryLocation2D entry) {
-        if(type == Type.Write) {
+        if(type == Type.SOURCE) {
             return box.asRegionCoords(new Vector3i(32, 32, 32)).columnIntersects(entry.getEntryX(), entry.getEntryZ());
         }
         return false;
     }
+    public boolean is2dRegionFrozen(EntryLocation2D entry) {
+        return box.asRegionCoords(new Vector3i(32, 32, 32)).columnIntersects(entry.getEntryX(), entry.getEntryZ());
+    }
 
     public boolean is3dRegionReadFrozen(EntryLocation3D entry) {
-        if(type == Type.Read) {
+        if(type == Type.DESTINATION) {
             return box.asRegionCoords(new Vector3i(16, 16, 16)).intersects(entry.getEntryX(), entry.getEntryY(), entry.getEntryZ());
         }
         return false;
     }
     public boolean is3dRegionWriteFrozen(EntryLocation3D entry) {
-        if(type == Type.Write) {
+        if(type == Type.SOURCE) {
             return box.asRegionCoords(new Vector3i(16, 16, 16)).intersects(entry.getEntryX(), entry.getEntryY(), entry.getEntryZ());
         }
         return false;
+    }
+    public boolean is3dRegionFrozen(EntryLocation3D entry) {
+        return box.asRegionCoords(new Vector3i(16, 16, 16)).intersects(entry.getEntryX(), entry.getEntryY(), entry.getEntryZ());
     }
 }

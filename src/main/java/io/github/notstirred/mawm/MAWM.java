@@ -1,18 +1,40 @@
 package io.github.notstirred.mawm;
 
+import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.MixinCubeProviderServer;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
+import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.asm.mixininterfaces.IRegionCubeIO;
 import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
+import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap;
+import io.github.opencubicchunks.cubicchunks.core.server.chunkio.RegionCubeIO;
+import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+
 /* TODO: everything
-RegionCubeIO
-    - freeze
-    - do converter stuff
-drop -> reload all writeFrozenCubes and writeFrozenColumns
+
+
+before starting converter stuffs
+    - wait 'til all dst frozen cubes&columns are saved
+    - wait 'til force save frozen src cubes&columns
+    - call SharedCachedRegionProvider#clearRegions
+
+do converter stuffs
+
+after ending converter stuffs
+    - remove frozen cubes+columns
+    - drop -> reload all dstCubes and dstColumns (async)
+        - resend reloaded to client
  */
 
 @Mod(
@@ -38,5 +60,22 @@ public class MAWM {
         evt.registerServerCommand(new CommandFreezeBox());
         evt.registerServerCommand(new CommandFreeze());
         evt.registerServerCommand(new CommandUnfreeze());
+    }
+
+    @SubscribeEvent
+    public static void worldTick(TickEvent.WorldTickEvent event) {
+        if(event.world.isRemote) return;
+        if(((IFreezableWorld) event.world).isFrozen()) {
+            IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
+            if (!regionCubeIO.hasFrozenColumnsToBeSaved() && !regionCubeIO.hasFrozenCubesToBeSaved()) {
+                try {
+                    SharedCachedRegionProvider.clearRegions();
+                    LOGGER.info("REGIONS CLEARED");
+                } catch (IOException e) {
+                    LOGGER.fatal(e);
+                }
+                //Do converter stuff
+            }
+        }
     }
 }
