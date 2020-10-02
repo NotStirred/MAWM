@@ -14,10 +14,13 @@ import java.util.Map;
 
 public interface IFreezableCubeProviderServer {
 
-    void unfreezeReload(AccessPlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap);
+    void unfreezeUnloadBarrier(PlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap);
+    void unfreezeReloadBarrier(PlayerCubeMap map, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap);
 
-    void unfreezeUnload(PlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap);
+    void unfreezeUnloadDst(PlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap);
+    void unfreezeReloadDst(List<Map.Entry<CubePos, TicketList>> dstCubesToReload);
 
-    void freeze();
+    void reload();
 
+    void addSrcCubesToSave();
 }

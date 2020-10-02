@@ -22,8 +22,9 @@ public class CommandFreezeBox extends CommandBase {
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         FreezableBox box;
+
         try {
-            box = new FreezableBox(args[0].equals("dst") ? FreezableBox.Type.DESTINATION : FreezableBox.Type.SOURCE,
+            box = new FreezableBox(
                     Integer.parseInt(args[1]),
                     Integer.parseInt(args[2]),
                     Integer.parseInt(args[3]),
@@ -31,9 +32,15 @@ public class CommandFreezeBox extends CommandBase {
                     Integer.parseInt(args[5]),
                     Integer.parseInt(args[6]));
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            throw new CommandException("mawm.command.debug.invalidboundingbox");
+            throw new CommandException("mawm.command.debug.freezebox.invalidboundingbox", args[1], args[2], args[3], args[4], args[5], args[6]);
         }
-        ((IFreezableWorld) sender.getEntityWorld()).addFreezeBox(box);
+        if(args[0].equals("dst"))
+            ((IFreezableWorld) sender.getEntityWorld()).addDstFreezeBox(box);
+        else if(args[0].equals("src"))
+            ((IFreezableWorld) sender.getEntityWorld()).addSrcFreezeBox(box);
+        else
+            throw new CommandException("mawm.command.debug.freezebox.invalidfreezetype", args[0]);
+
         sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.debug.freezebox.success"));
     }
 }

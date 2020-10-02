@@ -28,51 +28,82 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
     @Shadow @Final private static Logger LOGGER;
 
     @Shadow @Nonnull private ConcurrentMap<CubePos, Object> cubesToSave;
-
     @Shadow @Nonnull private ConcurrentMap<ChunkPos, Object> columnsToSave;
 
+    //saving
     @Redirect(method = "writeNextIO", at = @At(value = "INVOKE", target = "Lcubicchunks/regionlib/impl/SaveCubeColumns;save2d(Lcubicchunks/regionlib/impl/EntryLocation2D;Ljava/nio/ByteBuffer;)V"))
     private void writeNextIO$skipSrcColumn(SaveCubeColumns save, EntryLocation2D entry, ByteBuffer data) {
-        if(!((IFreezableWorld) world).is2dRegionFrozen(entry)) {
-            try {
-                save.save2d(entry, data);
-            } catch (Throwable t) {
-                LOGGER.error(String.format("Unable to write column (%d, %d)", entry.getEntryX(), entry.getEntryZ()), t);
+        if(((IFreezableWorld) world).isSrcSavingLocked()) {
+            if (((IFreezableWorld) world).is2dRegionSrc(entry)) {
+                return;
             }
+        }
+        if(((IFreezableWorld) world).isDstSavingLocked()) {
+            if(((IFreezableWorld) world).is2dRegionDst(entry)) {
+                return;
+            }
+        }
+        try {
+            save.save2d(entry, data);
+        } catch (Throwable t) {
+            LOGGER.error(String.format("Unable to write column (%d, %d)", entry.getEntryX(), entry.getEntryZ()), t);
         }
     }
     @Redirect(method = "writeNextIO", at = @At(value = "INVOKE", target = "Lcubicchunks/regionlib/impl/SaveCubeColumns;save3d(Lcubicchunks/regionlib/impl/EntryLocation3D;Ljava/nio/ByteBuffer;)V"))
     private void writeNextIO$skipSrcCube(SaveCubeColumns save, EntryLocation3D entry, ByteBuffer data) {
-        if(!((IFreezableWorld) world).is3dRegionFrozen(entry)) {
-            try {
-                save.save3d(entry, data);
-            } catch (Throwable t) {
-                LOGGER.error(String.format("Unable to write cube %d, %d, %d", entry.getEntryX(), entry.getEntryY(), entry.getEntryZ()), t);
+        if(((IFreezableWorld) world).isSrcSavingLocked()) {
+            if (((IFreezableWorld) world).is3dRegionSrc(entry)) {
+                return;
             }
         }
+        if(((IFreezableWorld) world).isDstSavingLocked()) {
+            if(((IFreezableWorld) world).is3dRegionDst(entry)) {
+                return;
+            }
+        }
+        try {
+            save.save3d(entry, data);
+        } catch (Throwable t) {
+            LOGGER.error(String.format("Unable to write cube %d, %d, %d", entry.getEntryX(), entry.getEntryY(), entry.getEntryZ()), t);
+        }
     }
 
+    //adding to save
     @Redirect(method = "saveColumn", at = @At(value = "INVOKE", target = "Ljava/util/concurrent/ConcurrentMap;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
     private Object saveColumn$skipFrozenColumn(ConcurrentMap<Object, Object> concurrentMap, Object chunkPos, Object saveEntry) {
-        if(!((IFreezableWorld) world).isColumnFrozen((ChunkPos) chunkPos)) {
-            return concurrentMap.put(chunkPos, saveEntry);
+        if(((IFreezableWorld) world).isSrcSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isColumnSrc((ChunkPos) chunkPos, false)) {
+                return null;
+            }
         }
-        return null;
+        if(((IFreezableWorld) world).isDstSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isColumnDst((ChunkPos) chunkPos, false)) {
+                return null;
+            }
+        }
+        return concurrentMap.put(chunkPos, saveEntry);
     }
     @Redirect(method = "saveCube", at = @At(value = "INVOKE", target = "Ljava/util/concurrent/ConcurrentMap;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
-    private Object saveColumn$skipFrozenCube(ConcurrentMap<Object, Object> concurrentMap, Object cubePos, Object saveEntry) {
-        if(!((IFreezableWorld) world).isCubeFrozen((CubePos) cubePos)) {
-            return concurrentMap.put(cubePos, saveEntry);
+    private Object saveCube$skipFrozenCube(ConcurrentMap<Object, Object> concurrentMap, Object cubePos, Object saveEntry) {
+        if(((IFreezableWorld) world).isSrcSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isCubeSrc((CubePos) cubePos, false)) {
+                return null;
+            }
         }
-        return null;
+        if(((IFreezableWorld) world).isDstSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isCubeDst((CubePos) cubePos, false)) {
+                return null;
+            }
+        }
+        return concurrentMap.put(cubePos, saveEntry);
     }
 
     @Override
-    public boolean hasFrozenCubesToBeSaved() {
-        return cubesToSave.keySet().stream().anyMatch(cubePos -> ((IFreezableWorld) world).isCubeFrozen(cubePos));
+    public boolean hasFrozenSrcCubesToBeSaved() {
+        return cubesToSave.keySet().stream().anyMatch(cubePos -> ((IFreezableWorld) world).isCubeSrc(cubePos, false));
     }
     @Override
-    public boolean hasFrozenColumnsToBeSaved() {
-        return columnsToSave.keySet().stream().anyMatch(chunkPos -> ((IFreezableWorld) world).isColumnFrozen(chunkPos));
+    public boolean hasFrozenSrcColumnsToBeSaved() {
+        return columnsToSave.keySet().stream().anyMatch(chunkPos -> ((IFreezableWorld) world).isColumnSrc(chunkPos, false));
     }
 }

@@ -20,7 +20,7 @@ public class CommandFreeze extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        ((IFreezableWorld) sender.getEntityWorld()).freeze();
+//        ((IFreezableWorld) sender.getEntityWorld()).freeze();
         sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.debug.freeze.success"));
     }
 }

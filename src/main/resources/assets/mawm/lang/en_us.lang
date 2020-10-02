@@ -1,4 +1,6 @@
-mawm.command.debug.invalidboundingbox=Invalid Bounding Box!
+mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! ({0}, {1}, {2}), ({3} {4} {5})
+mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! {0}
 mawm.command.debug.freezebox.success=Box added to frozen boxes!
 mawm.command.debug.freeze.success=Frozen!
 mawm.command.debug.unfreeze.success=Unfrozen!
+mawm.command.debug.convert.success=Converting!
