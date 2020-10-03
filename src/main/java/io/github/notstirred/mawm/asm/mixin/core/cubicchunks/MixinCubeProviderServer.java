@@ -1,5 +1,6 @@
 package io.github.notstirred.mawm.asm.mixin.core.cubicchunks;
 
+import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeWatcher;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerChunkMapEntry;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerCubeMap;
@@ -280,7 +281,9 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         Map<IColumn, List<EntityPlayerMP>> columnPlayerMap = new IdentityHashMap<>(1000);
 
         unfreezeUnloadBarrier(playerCubeMap, dstCubesToReload, cubePlayerMap, columnPlayerMap);
+        MAWM.LOGGER.info("Barrier unloaded");
         unfreezeUnloadDst(playerCubeMap, dstCubesToReload, cubePlayerMap, columnPlayerMap);
+        MAWM.LOGGER.info("Dst unloaded");
 
         ((IFreezableWorld) worldServer).setDstFrozen(false);
 
@@ -290,13 +293,15 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         ((IFreezableWorld) worldServer).setManipulateStage(IFreezableWorld.ManipulateStage.RELOADING_CUBES);
 
         unfreezeReloadBarrier(playerCubeMap, cubePlayerMap, columnPlayerMap);
-        unfreezeUnloadDst(playerCubeMap, dstCubesToReload, cubePlayerMap, columnPlayerMap);
+        MAWM.LOGGER.info("Barrier reloaded");
+        unfreezeReloadDst(dstCubesToReload);
+        MAWM.LOGGER.info("Dst reloaded");
     }
 
     @Override
     public void unfreezeUnloadBarrier(PlayerCubeMap map, List<Map.Entry<CubePos, TicketList>> dstCubesToReload, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap) {
         newFrozenCubes.iterator().forEachRemaining(cube -> {
-//            MAWM.LOGGER.info("SRC Cube unloaded at pos " + cube.getCoords());
+            MAWM.LOGGER.info("Barrier Cube unloaded at pos " + cube.getCoords());
             CubeWatcher cubeWatcher = map.getCubeWatcher(cube.getCoords());
             if (cubeWatcher != null) {
                 ObjectArrayList<EntityPlayerMP> players = ((AccessCubeWatcher) cubeWatcher).getPlayers().clone();
@@ -328,7 +333,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         });
 
         cubePlayerMap.forEach((cube, players) -> {
-//            MAWM.LOGGER.info("SRC Cube reloaded at pos " + cube.getCoords());
+            MAWM.LOGGER.info("Barrier Cube reloaded at pos " + cube.getCoords());
             CubeWatcher cubeWatcher = ((AccessPlayerCubeMap)map).invokeGetOrCreateCubeWatcher(cube.getCoords());
             players.forEach(((AccessCubeWatcher) cubeWatcher)::invokeAddPlayer);
         });
@@ -340,7 +345,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             Cube cube = iterator.next();
             if (!((IFreezableWorld) world).isCubeDst(cube, false))
                 continue;
-//            MAWM.LOGGER.info("DST Cube unloaded at pos " + cube.getCoords());
+            MAWM.LOGGER.info("DST Cube unloaded at pos " + cube.getCoords());
             CubeWatcher cubeWatcher = map.getCubeWatcher(cube.getCoords());
             if (cubeWatcher != null) {
                 ObjectArrayList<EntityPlayerMP> players = ((AccessCubeWatcher) cubeWatcher).getPlayers().clone();
@@ -373,7 +378,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
     public void unfreezeReloadDst(List<Map.Entry<CubePos, TicketList>> dstCubesToReload) {
         dstCubesToReload.forEach(
                 (pair) -> {
-//                    MAWM.LOGGER.info("DST Cube reloaded at pos " + pair.getKey());
+                    MAWM.LOGGER.info("DST Cube reloaded at pos " + pair.getKey());
                     this.asyncGetCube(pair.getKey().getX(), pair.getKey().getY(), pair.getKey().getZ(), Requirement.LOAD,
                         (cube) -> ((AccessTicketList) pair.getValue()).getTickets().forEach((iticket) -> {
                             if(cube != null)

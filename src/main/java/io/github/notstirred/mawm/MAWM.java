@@ -1,21 +1,17 @@
 package io.github.notstirred.mawm;
 
 import cubicchunks.converter.headless.command.HeadlessCommandContext;
-import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.EditTask;
-import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.asm.mixininterfaces.IRegionCubeIO;
+import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.commands.debug.CommandConvert;
 import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
 import io.github.notstirred.mawm.converter.MAWMConverter;
-import io.github.notstirred.mawm.util.FreezableBox;
-import net.minecraft.client.multiplayer.ChunkProviderClient;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -25,11 +21,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 /*
 Stop dst cubes from being saved
@@ -61,6 +54,8 @@ allow dst cubes & cols being saved
 /* TODO: changes to the converter
 custom reader to allow for piping nbt data straight to it on save with a higher priority than the one read from disk
  */
+
+//TODO: fix issues with multiple region files being operated on at once
 @Mod(
         modid = MAWM.MOD_ID,
         name = MAWM.MOD_NAME,
@@ -78,11 +73,6 @@ public class MAWM {
     @Mod.Instance(MOD_ID)
     public static MAWM INSTANCE;
 
-    private static Path srcWorld = Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/New World");
-    private static Path dstWorld = Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/mawmWorkingDir");
-
-    List<EditTask> tasks = new ArrayList<>();
-
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent evt)
     {
@@ -90,14 +80,13 @@ public class MAWM {
         evt.registerServerCommand(new CommandFreeze());
         evt.registerServerCommand(new CommandUnfreeze());
         evt.registerServerCommand(new CommandConvert());
-
-        tasks.add(new EditTask(new BoundingBox(0, 0, 0, 15, 15, 15), new Vector3i(-16, 0,0), EditTask.Type.CUT));
+        evt.registerServerCommand(new MAWMCommands());
     }
 
     @SubscribeEvent
     public static void worldTick(TickEvent.WorldTickEvent event) {
         if(event.world.isRemote) return;
-
+        //TODO: fix issues with event.world possibly not being the world the player is in (nether, end, etc)
         if(((IFreezableWorld) event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE) {
             LOGGER.info(event.world.provider.getDimension());
             IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
@@ -125,30 +114,24 @@ public class MAWM {
             } catch (IOException e) {
                 LOGGER.fatal(e);
             }
-            try {
-                Files.delete(Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/New World/region3d/-1.0.0.3dr"));
-                Files.delete(Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/New World/region3d/0.0.0.3dr"));
-                Files.copy(Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/mawmWorkingDir/region3d/-1.0.0.3dr"),
-                        Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/New World/region3d/-1.0.0.3dr"));
-                Files.copy(Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/mawmWorkingDir/region3d/0.0.0.3dr"),
-                        Paths.get("/home/tom/Documents/dev/java/minecraft/MAWM (copy)/run/saves/New World/region3d/0.0.0.3dr"));
-                LOGGER.info("Region files copied");
-                ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
+
+            ((IFreezableWorld)event.world).swapModifiedRegionFilesForTasks();
+            LOGGER.info("Region files copied");
+            ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
+
             ((IFreezableWorld) event.world).setSrcSavingLocked(false);
             ((IFreezableWorld) event.world).setSrcSaveAddingLocked(false);
             ((IFreezableWorld) event.world).setDstSavingLocked(false);
             ((IFreezableWorld) event.world).setDstSaveAddingLocked(false);
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
+            ((IFreezableWorld) event.world).getTasks().clear();
             ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
         }
     }
 
     public void convertCommand(WorldServer world) {
-        addFreezeRegionsForTasks(world);
+        ((IFreezableWorld) world).addFreezeRegionsForTasks();
         ((IFreezableWorld) world).setDstSavingLocked(true);
         ((IFreezableWorld) world).setDstSaveAddingLocked(true);
 
@@ -160,37 +143,18 @@ public class MAWM {
 
     public static void startConverter(WorldServer world) {
         HeadlessCommandContext context = new HeadlessCommandContext();
+
+        Path srcWorld = world.getSaveHandler().getWorldDirectory().toPath();
+        Path dstWorld = Paths.get(world.getSaveHandler().getWorldDirectory().getParent() + "/mawmWorkingWorld");
+
         context.setSrcWorld(srcWorld);
         context.setDstWorld(dstWorld);
         context.setConverterName("Relocating");
         context.setInFormat("CubicChunks");
         context.setOutFormat("CubicChunks");
         LOGGER.info(world.provider.getDimension());
-        MAWMConverter.convert(context, INSTANCE.tasks, () ->
-                ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERT_FINISHED));
-    }
-
-    private void addFreezeRegionsForTasks(WorldServer world) {
-        tasks.forEach(task -> {
-            ((IFreezableWorld) world).addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
-            if(task.getOffset() != null) {
-                ((IFreezableWorld) world).addDstFreezeBox(new FreezableBox(
-                        task.getSourceBox().getMinPos().add(task.getOffset()),
-                        task.getSourceBox().getMaxPos().add(task.getOffset())
-                ));
-            }
-
-            switch (task.getType()) {
-                case NONE:
-                case KEEP:
-                case COPY:
-                    break;
-                case CUT:
-                case MOVE:
-                case REMOVE:
-                    ((IFreezableWorld) world).addDstFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
-                    break;
-            }
+        MAWMConverter.convert(context, ((IFreezableWorld) world).getTasks(), () -> {
+            ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERT_FINISHED);
         });
     }
 }

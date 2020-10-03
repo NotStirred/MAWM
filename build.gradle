@@ -71,7 +71,7 @@ dependencies {
     }
 
     testCompile("junit:junit:4.11")
-    shadow("io.github.opencubicchunks:cubicchunksconverter:1.73.0-SNAPSHOT")
+    shadow("io.github.opencubicchunks:cubicchunksconverter:1.75.0-SNAPSHOT")
     implementation("io.github.opencubicchunks:cubicchunks:1.12.2-0.0-SNAPSHOT")
 }
 mixin {

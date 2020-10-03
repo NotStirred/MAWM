@@ -1,32 +1,45 @@
 package io.github.notstirred.mawm.asm.mixin.core.cubicchunks.world.server;
 
+import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
+import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.MixinCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.util.FreezableBox;
-import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
-import io.github.opencubicchunks.cubicchunks.api.world.IColumn;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldServer;
-import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap;
-import io.github.opencubicchunks.cubicchunks.core.util.ticket.TicketList;
-import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.minecraft.entity.player.EntityPlayerMP;
+import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer;
+import io.github.opencubicchunks.cubicchunks.core.server.CubicAnvilChunkLoader;
 import net.minecraft.server.management.PlayerChunkMap;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.AnvilChunkLoader;
+import net.minecraft.world.gen.ChunkProviderServer;
+import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldServer {
 
     @Shadow @Final private PlayerChunkMap playerChunkMap;
+
+    @Shadow public abstract File getChunkSaveLocation();
+
+    @Shadow public abstract ChunkProviderServer getChunkProvider();
+
+    @Shadow @Final private static Logger LOGGER;
+    List<EditTask> tasks = new ArrayList<>();
 
     private List<FreezableBox> srcFreezeBoxes = new ArrayList<>();
     private List<FreezableBox> dstFreezeBoxes = new ArrayList<>();
@@ -40,10 +53,110 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
     private boolean isDstSavingLocked = false;
     private boolean isDstSaveAddingLocked = false;
 
-    PlayerCubeMap playerCubeMap;
-    List<Map.Entry<CubePos, TicketList>> dstCubesToReload;
-    Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap;
-    Map<IColumn, List<EntityPlayerMP>> columnPlayerMap;
+    private static final Vector3i CC_REGION_SIZE = new Vector3i(16, 16, 16);
+
+    @Override
+    public void swapModifiedRegionFilesForTasks() {
+        tasks.forEach(task -> getRegionFilesModifiedByTask(task).forEach((vec) -> {
+
+                File saveLoc = ((WorldServer)(Object)this).getSaveHandler().getWorldDirectory();
+                File workingLoc = Paths.get(((WorldServer)(Object)this).getSaveHandler().getWorldDirectory().getParent() + "/mawmWorkingWorld").toFile();
+
+                Path backupLoc = Paths.get(saveLoc.getAbsolutePath() + "/region3d.bak/");
+                if(!Files.exists(backupLoc)) {
+                    try {
+                        Files.createDirectories(backupLoc);
+                    } catch(IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                String dstVecPath = saveLoc.getAbsolutePath() + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr";
+                Path bakVecPath = Paths.get(saveLoc.getAbsolutePath() + "/region3d.bak/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            try {
+                if(Files.exists(bakVecPath)) {
+                    Files.delete(bakVecPath);
+                    LOGGER.info("Deleted existing backup region file");
+                }
+                Files.move(Paths.get(dstVecPath), bakVecPath);
+                LOGGER.info("Moved world region file into backup loc");
+                Files.move(Paths.get(workingLoc.getAbsolutePath() + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr"),
+                        Paths.get(dstVecPath));
+                LOGGER.info("Moved output region into world loc");
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }));
+    }
+
+    private Set<Vector3i> getRegionFilesModifiedByTask(EditTask task) {
+        Set<Vector3i> vectors = new HashSet<>();
+
+        switch(task.getType()) {
+            case MOVE:
+                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                break;
+            case CUT:
+                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
+                if(task.getOffset() != null) {
+                    vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                }
+                break;
+            case COPY:
+                if(task.getOffset() != null) {
+                    vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                }
+                break;
+            case KEEP:
+            case REMOVE:
+                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
+                break;
+        }
+
+        return vectors;
+    }
+
+    private Vector3i vec3iAsRegionCoords(Vector3i vec, Vector3i regionSize) {
+        //TODO: add this to Vector3i in the converter
+        return new Vector3i(Math.floorDiv(vec.getX(), regionSize.getX()),
+                Math.floorDiv(vec.getY(), regionSize.getY()),
+                Math.floorDiv(vec.getZ(), regionSize.getZ()));
+    }
+
+    @Override
+    public void addFreezeRegionsForTasks() {
+        //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
+        tasks.forEach(task -> {
+            addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
+            if(task.getOffset() != null) {
+                addDstFreezeBox(new FreezableBox(
+                        task.getSourceBox().getMinPos().add(task.getOffset()),
+                        task.getSourceBox().getMaxPos().add(task.getOffset())
+                ));
+            }
+
+            switch (task.getType()) {
+                case NONE:
+                case KEEP:
+                case COPY:
+                    break;
+                case CUT:
+                case MOVE:
+                case REMOVE:
+                    addDstFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
+                    break;
+            }
+        });
+    }
+
+    @Override
+    public List<EditTask> getTasks() {
+        return tasks;
+    }
+    @Override
+    public void addTask(EditTask task) {
+        tasks.add(task);
+    }
 
     @Override
     public ManipulateStage getManipulateStage() {

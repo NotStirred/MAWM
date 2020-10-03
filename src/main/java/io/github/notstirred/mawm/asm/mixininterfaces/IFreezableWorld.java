@@ -1,6 +1,7 @@
 package io.github.notstirred.mawm.asm.mixininterfaces;
 
 import cubicchunks.converter.lib.util.BoundingBox;
+import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.util.FreezableBox;
@@ -9,12 +10,17 @@ import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 
+import java.util.List;
+
 public interface IFreezableWorld {
-    void clearSrcBoxes();
+    enum ManipulateStage { NONE, WAITING_SRC_SAVE, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
 
-    void clearDstBoxes();
+    void swapModifiedRegionFilesForTasks();
 
-    enum ManipulateStage { NONE, WAITING_SRC_SAVE, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES }
+    void addFreezeRegionsForTasks();
+
+    List<EditTask> getTasks();
+    void addTask(EditTask task);
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);
@@ -68,4 +74,7 @@ public interface IFreezableWorld {
 
     void addSrcFreezeBox(FreezableBox box);
     void addDstFreezeBox(FreezableBox box);
+
+    void clearSrcBoxes();
+    void clearDstBoxes();
 }
