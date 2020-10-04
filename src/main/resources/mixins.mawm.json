@@ -4,17 +4,14 @@
   "target": "@env(DEFAULT)",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "MixinMinecraftServer",
-    "cubicchunks.MixinChunkColumn",
     "cubicchunks.MixinCube",
     "cubicchunks.MixinCubeProviderServer",
-    "cubicchunks.server.AccessColumnWatcher",
     "cubicchunks.server.AccessCubeProviderServer",
     "cubicchunks.server.AccessCubeWatcher",
-    "cubicchunks.server.AccessPlayerChunkMapEntry",
+    "server.AccessPlayerChunkMapEntry",
     "cubicchunks.server.AccessPlayerCubeMap",
     "cubicchunks.server.io.MixinRegionCubeIO",
     "cubicchunks.util.ticket.AccessTicketList",
-    "cubicchunks.world.server.MixinWorldServer",
+    "world.server.MixinWorldServer"
   ]
 }

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 import javax.annotation.Nonnull;
 
-@Mixin(PlayerCubeMap.class)
+@Mixin(value = PlayerCubeMap.class, remap = false)
 public interface AccessPlayerCubeMap {
     @Invoker CubeWatcher invokeGetOrCreateCubeWatcher(@Nonnull CubePos cubePos);
     @Invoker ColumnWatcher invokeGetOrCreateColumnWatcher(ChunkPos chunkPos);

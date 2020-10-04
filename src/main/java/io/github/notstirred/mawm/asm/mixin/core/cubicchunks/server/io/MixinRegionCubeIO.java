@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentMap;
 
-@Mixin(RegionCubeIO.class)
+@Mixin(value = RegionCubeIO.class, remap = false)
 public abstract class MixinRegionCubeIO implements IRegionCubeIO {
 
     @Shadow @Nonnull private World world;

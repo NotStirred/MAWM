@@ -1,23 +1,15 @@
-package io.github.notstirred.mawm.asm.mixin.core.cubicchunks.world.server;
+package io.github.notstirred.mawm.asm.mixin.core.world.server;
 
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
-import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.MixinCubeProviderServer;
+import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.util.FreezableBox;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldServer;
-import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer;
-import io.github.opencubicchunks.cubicchunks.core.server.CubicAnvilChunkLoader;
-import net.minecraft.server.management.PlayerChunkMap;
 import net.minecraft.world.WorldServer;
-import net.minecraft.world.chunk.storage.AnvilChunkLoader;
-import net.minecraft.world.gen.ChunkProviderServer;
-import org.apache.logging.log4j.Logger;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,14 +23,6 @@ import java.util.Set;
 
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldServer {
-
-    @Shadow @Final private PlayerChunkMap playerChunkMap;
-
-    @Shadow public abstract File getChunkSaveLocation();
-
-    @Shadow public abstract ChunkProviderServer getChunkProvider();
-
-    @Shadow @Final private static Logger LOGGER;
     List<EditTask> tasks = new ArrayList<>();
 
     private List<FreezableBox> srcFreezeBoxes = new ArrayList<>();
@@ -76,13 +60,13 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
             try {
                 if(Files.exists(bakVecPath)) {
                     Files.delete(bakVecPath);
-                    LOGGER.info("Deleted existing backup region file");
+                    MAWM.LOGGER.info("Deleted existing backup region file");
                 }
                 Files.move(Paths.get(dstVecPath), bakVecPath);
-                LOGGER.info("Moved world region file into backup loc");
+                MAWM.LOGGER.info("Moved world region file into backup loc");
                 Files.move(Paths.get(workingLoc.getAbsolutePath() + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr"),
                         Paths.get(dstVecPath));
-                LOGGER.info("Moved output region into world loc");
+                MAWM.LOGGER.info("Moved output region into world loc");
             } catch(IOException e) {
                 e.printStackTrace();
             }

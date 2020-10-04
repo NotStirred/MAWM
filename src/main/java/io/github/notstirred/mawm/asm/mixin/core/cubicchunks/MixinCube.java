@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.annotation.Nonnull;
 
-@Mixin(Cube.class)
+@Mixin(value = Cube.class, remap = false)
 public class MixinCube implements IFreezableCube {
 
     @Shadow @Final @Nonnull private TicketList tickets;

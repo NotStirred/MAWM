@@ -1,4 +1,4 @@
-package io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server;
+package io.github.notstirred.mawm.asm.mixin.core.server;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.management.PlayerChunkMapEntry;
