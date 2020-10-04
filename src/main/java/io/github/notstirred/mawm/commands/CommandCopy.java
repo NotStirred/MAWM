@@ -14,15 +14,15 @@ import net.minecraft.util.text.TextComponentTranslation;
 
 import java.util.AbstractMap;
 
-public class CommandCut extends CommandBase {
+public class CommandCopy extends CommandBase {
     @Override
     public String getName() {
-        return "cut";
+        return "copy";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "mawm.command.cut.usage";
+        return "mawm.command.copy.usage";
     }
 
     @Override
@@ -43,8 +43,7 @@ public class CommandCut extends CommandBase {
                     positions.getValue()
             );
 
-            Vector3i offset = null;
-
+            Vector3i offset;
             if (args.length == 3) { //doing a cut from wandpos1 to wandpos2 with an offset
                 offset = new Vector3i(
                         Integer.parseInt(args[0]),
@@ -52,11 +51,11 @@ public class CommandCut extends CommandBase {
                         Integer.parseInt(args[2])
                 );
 
-            } else if (args.length == 0) {
-            } //doing a cut from wandpos1 to wandpos2 WITHOUT an offset
+            } else
+                throw new CommandException("mawm.command.copy.no_args");
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.CUT));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.COPY));
         }
-        sender.sendMessage(new TextComponentTranslation("mawm.command.cut.queued"));
+        sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
     }
 }
