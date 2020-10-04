@@ -88,7 +88,6 @@ public class MAWM {
         if(event.world.isRemote) return;
         //TODO: fix issues with event.world possibly not being the world the player is in (nether, end, etc)
         if(((IFreezableWorld) event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE) {
-            LOGGER.info(event.world.provider.getDimension());
             IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
             if (!regionCubeIO.hasFrozenSrcColumnsToBeSaved() && !regionCubeIO.hasFrozenSrcCubesToBeSaved()) {
                 try {
@@ -106,7 +105,6 @@ public class MAWM {
             }
         }
         if(((IFreezableWorld) event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED) {
-            LOGGER.info(event.world.provider.getDimension());
             ((IFreezableWorld) event.world).setSrcFrozen(false);
             ((IFreezableWorld) event.world).setDstFrozen(true);
             try {
@@ -152,7 +150,6 @@ public class MAWM {
         context.setConverterName("Relocating");
         context.setInFormat("CubicChunks");
         context.setOutFormat("CubicChunks");
-        LOGGER.info(world.provider.getDimension());
         MAWMConverter.convert(context, ((IFreezableWorld) world).getTasks(), () -> {
             ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERT_FINISHED);
         });

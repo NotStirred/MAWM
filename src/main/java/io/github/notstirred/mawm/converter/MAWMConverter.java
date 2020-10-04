@@ -5,6 +5,7 @@ import cubicchunks.converter.lib.Registry;
 import cubicchunks.converter.lib.conf.ConverterConfig;
 import cubicchunks.converter.lib.convert.WorldConverter;
 import cubicchunks.converter.lib.util.EditTask;
+import io.github.notstirred.mawm.MAWM;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ public class MAWMConverter {
 
         conf.set("relocations", tasks);
 
-        System.out.println(tasks.get(0).getSourceBox().toString() + tasks.get(0).getOffset().toString() + tasks.get(0).getType().toString());
+        tasks.forEach((task) -> MAWM.LOGGER.info(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
                 Registry.getLevelConverter(context.getInFormat(), context.getOutFormat(), context.getConverterName()).apply(context.getSrcWorld(), context.getDstWorld()),

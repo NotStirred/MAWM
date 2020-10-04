@@ -1,9 +1,10 @@
-package io.github.notstirred.mawm.commands;
+package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -14,15 +15,15 @@ import net.minecraft.util.text.TextComponentTranslation;
 
 import java.util.AbstractMap;
 
-public class CommandCut extends CommandBase {
+public class CommandMoveRegen extends CommandBase {
     @Override
     public String getName() {
-        return "cut";
+        return "moveregen";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "mawm.command.cut.usage";
+        return "mawm.command.moveregen.usage";
     }
 
     @Override
@@ -43,8 +44,7 @@ public class CommandCut extends CommandBase {
                     positions.getValue()
             );
 
-            Vector3i offset = null;
-
+            Vector3i offset;
             if (args.length == 3) { //doing a cut from wandpos1 to wandpos2 with an offset
                 offset = new Vector3i(
                         Integer.parseInt(args[0]),
@@ -52,11 +52,11 @@ public class CommandCut extends CommandBase {
                         Integer.parseInt(args[2])
                 );
 
-            } else if (args.length == 0) {
-            } //doing a cut from wandpos1 to wandpos2 WITHOUT an offset
+            } else
+                throw new CommandException("mawm.command.moveregen.no_args");
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.CUT));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.MOVE));
         }
-        sender.sendMessage(new TextComponentTranslation("mawm.command.cut.queued"));
+        sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
     }
 }

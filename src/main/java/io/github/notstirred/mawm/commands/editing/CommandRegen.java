@@ -1,9 +1,10 @@
-package io.github.notstirred.mawm.commands;
+package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -14,15 +15,15 @@ import net.minecraft.util.text.TextComponentTranslation;
 
 import java.util.AbstractMap;
 
-public class CommandCopy extends CommandBase {
+public class CommandRegen extends CommandBase {
     @Override
     public String getName() {
-        return "copy";
+        return "regen";
     }
 
     @Override
     public String getUsage(ICommandSender sender) {
-        return "mawm.command.copy.usage";
+        return "mawm.command.regen.usage";
     }
 
     @Override
@@ -43,18 +44,7 @@ public class CommandCopy extends CommandBase {
                     positions.getValue()
             );
 
-            Vector3i offset;
-            if (args.length == 3) { //doing a cut from wandpos1 to wandpos2 with an offset
-                offset = new Vector3i(
-                        Integer.parseInt(args[0]),
-                        Integer.parseInt(args[1]),
-                        Integer.parseInt(args[2])
-                );
-
-            } else
-                throw new CommandException("mawm.command.copy.no_args");
-
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.COPY));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, null, EditTask.Type.REMOVE));
         }
         sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
     }
