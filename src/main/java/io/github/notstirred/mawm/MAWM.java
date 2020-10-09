@@ -56,6 +56,9 @@ custom reader to allow for piping nbt data straight to it on save with a higher 
  */
 
 //TODO: fix issues with multiple region files being operated on at once
+//TODO: single undo
+//TODO: configurable number of undos
+//    - perhaps doable through having region files named in a queue, such as 0.0.0.3dr.bak1, with higher number being more recent
 @Mod(
         modid = MAWM.MOD_ID,
         name = MAWM.MOD_NAME,

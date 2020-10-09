@@ -38,7 +38,7 @@ sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = co
 jar {
     manifest {
         attributes([
-                "Specification-Title": "mawm",
+                "Specification-Title": archivesBaseName,
                 "Specification-Vendor": "",
                 "Specification-Version": "1",
                 "Implementation-Title": project.name,
@@ -47,7 +47,8 @@ jar {
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
                 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'MixinConfigs': 'mixins.mawm.json',
-                'FMLCorePluginContainsFMLMod': 'true'
+                'FMLCorePluginContainsFMLMod': 'true',
+                "ForceLoadAsMod": "true"
         ])
     }
 }
@@ -71,14 +72,19 @@ dependencies {
     }
 
     testCompile("junit:junit:4.11")
-    shadow("io.github.opencubicchunks:cubicchunksconverter:1.75.0-SNAPSHOT")
-    implementation("io.github.opencubicchunks:cubicchunks:1.12.2-0.0-SNAPSHOT")
+    shadow("io.github.opencubicchunks:cubicchunksconverter")
+    implementation("io.github.opencubicchunks:cubicchunks")
 }
 mixin {
     add sourceSets.main, "mixins.mawm.refmap.json"
 }
 shadowJar {
     configurations = [project.configurations.shadow]
+}
+reobf {
+    shadowJar {
+        mappingType = "SEARGE"
+    }
 }
 
 configurations.all { resolutionStrategy { force("com.google.guava:guava:21.0") } }

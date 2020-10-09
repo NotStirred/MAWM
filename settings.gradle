@@ -16,3 +16,8 @@ includeBuild("CubicChunks") {
         substitute module('io.github.opencubicchunks:cubicchunks') with project(':')
     }
 }
+includeBuild("CubicChunksConverter") {
+    dependencySubstitution {
+        substitute module('io.github.opencubicchunks:cubicchunksconverter') with project(':')
+    }
+}

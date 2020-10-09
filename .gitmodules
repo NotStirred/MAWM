@@ -1,6 +1,7 @@
 [submodule "CubicChunksConverter"]
 	path = CubicChunksConverter
 	url = https://github.com/OpenCubicChunks/CubicChunksConverter
+	branch = dev/simple_perblock
 [submodule "CubicChunks"]
 	path = CubicChunks
 	url = https://github.com/OpenCubicChunks/CubicChunks

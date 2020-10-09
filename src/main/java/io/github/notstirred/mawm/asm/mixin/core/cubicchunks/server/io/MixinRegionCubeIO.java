@@ -30,6 +30,7 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
     @Shadow @Nonnull private ConcurrentMap<CubePos, Object> cubesToSave;
     @Shadow @Nonnull private ConcurrentMap<ChunkPos, Object> columnsToSave;
 
+    //TODO: prioritise saving frozen cubes first (probably need SaveEntry shadow class for that first however)
     //saving
     @Redirect(method = "writeNextIO", at = @At(value = "INVOKE", target = "Lcubicchunks/regionlib/impl/SaveCubeColumns;save2d(Lcubicchunks/regionlib/impl/EntryLocation2D;Ljava/nio/ByteBuffer;)V"))
     private void writeNextIO$skipSrcColumn(SaveCubeColumns save, EntryLocation2D entry, ByteBuffer data) {
