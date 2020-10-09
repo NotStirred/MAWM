@@ -37,7 +37,7 @@ public class MAWMCommands extends CommandTreeBase {
         return "mawm.command.commands.usage";
     }
 
-    public static BoundingBox toCubeBox(Vector3i pos1, Vector3i pos2) {
+    public static BoundingBox blockToCubeBox(Vector3i pos1, Vector3i pos2) {
         BoundingBox box = new BoundingBox(pos1, pos2);
 
         Vector3i minPos = box.getMinPos();

@@ -15,7 +15,6 @@ import java.util.Map;
 
 @Mod.EventBusSubscriber
 public class CubeWandHandler {
-    //Map of player to Pair<CubePos, CubePos>
     private static Map<EntityPlayer, AbstractMap.SimpleEntry<Vector3i, Vector3i>> playerWandPositions = new HashMap<>();
 
     public static AbstractMap.SimpleEntry<Vector3i, Vector3i> getWandLocationsForPlayer(EntityPlayer player) {
@@ -38,11 +37,14 @@ public class CubeWandHandler {
 
         if (event.getEntityPlayer().getHeldItem(event.getHand()).getItem() == Items.GOLDEN_AXE) {
             AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = playerWandPositions.get(event.getEntityPlayer());
+            int posX = event.getPos().getX() >> 4;
+            int posY = event.getPos().getY() >> 4;
+            int posZ = event.getPos().getZ() >> 4;
             if(positions == null)
-                positions = new AbstractMap.SimpleEntry<>(null, new Vector3i(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ()));
-            else {
-                positions.setValue(new Vector3i(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ()));
-            }
+                positions = new AbstractMap.SimpleEntry<>(null, new Vector3i(posX, posY, posZ));
+            else
+                positions.setValue(new Vector3i(posX, posY, posZ));
+
             playerWandPositions.put(event.getEntityPlayer(), positions);
             event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos1"));
         }
@@ -55,11 +57,14 @@ public class CubeWandHandler {
 
         if (event.getEntityPlayer().getHeldItem(event.getHand()).getItem() == Items.GOLDEN_AXE) {
             AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = playerWandPositions.get(event.getEntityPlayer());
+            int posX = event.getPos().getX() >> 4;
+            int posY = event.getPos().getY() >> 4;
+            int posZ = event.getPos().getZ() >> 4;
             if(positions == null)
-                positions = new AbstractMap.SimpleEntry<>(new Vector3i(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ()), null);
-            else {
-                positions = new AbstractMap.SimpleEntry<>(new Vector3i(event.getPos().getX(), event.getPos().getY(), event.getPos().getZ()), positions.getValue());
-            }
+                positions = new AbstractMap.SimpleEntry<>(new Vector3i(posX, posY, posZ), null);
+            else
+                positions = new AbstractMap.SimpleEntry<>(new Vector3i(posX, posY, posZ), positions.getValue());
+
             playerWandPositions.put(event.getEntityPlayer(), positions);
             event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos2"));
         }

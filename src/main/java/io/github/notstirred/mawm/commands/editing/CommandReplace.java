@@ -44,7 +44,7 @@ public class CommandReplace extends CommandBase {
             if (positions.getValue() == null)
                 throw new CommandException("mawm.cubewand.no_cubewandpos2");
 
-            BoundingBox box = MAWMCommands.toCubeBox(
+            BoundingBox box = new BoundingBox(
                     positions.getKey(),
                     positions.getValue()
             );
