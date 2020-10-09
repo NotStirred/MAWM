@@ -3,6 +3,8 @@ package io.github.notstirred.mawm.commands;
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.commands.editing.*;
+import io.github.notstirred.mawm.commands.selection.CommandCubePos1;
+import io.github.notstirred.mawm.commands.selection.CommandCubePos2;
 import net.minecraft.command.ICommandSender;
 import net.minecraftforge.server.command.CommandTreeBase;
 
@@ -17,6 +19,8 @@ public class MAWMCommands extends CommandTreeBase {
         super.addSubcommand(new CommandMoveRegen());
         super.addSubcommand(new CommandSet());
         super.addSubcommand(new CommandReplace());
+        super.addSubcommand(new CommandCubePos1());
+        super.addSubcommand(new CommandCubePos2());
     }
 
     /**

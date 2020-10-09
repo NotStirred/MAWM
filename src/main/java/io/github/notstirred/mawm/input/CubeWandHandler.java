@@ -19,7 +19,16 @@ public class CubeWandHandler {
     private static Map<EntityPlayer, AbstractMap.SimpleEntry<Vector3i, Vector3i>> playerWandPositions = new HashMap<>();
 
     public static AbstractMap.SimpleEntry<Vector3i, Vector3i> getWandLocationsForPlayer(EntityPlayer player) {
-        return playerWandPositions.get(player);
+        AbstractMap.SimpleEntry<Vector3i, Vector3i> entry = playerWandPositions.get(player);
+        if(entry == null) {
+            playerWandPositions.put(player, new AbstractMap.SimpleEntry<>(null, null));
+            return playerWandPositions.get(player);
+        }
+        return entry;
+    }
+
+    public static Map<EntityPlayer, AbstractMap.SimpleEntry<Vector3i, Vector3i>> getWandLocations() {
+        return playerWandPositions;
     }
 
     @SubscribeEvent
