@@ -8,6 +8,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.server.command.TextComponentHelper;
 
 import java.util.AbstractMap;
 
@@ -35,11 +36,11 @@ public class CommandCubePos2 extends CommandBase {
             AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
 
             positions.setValue(new Vector3i(
-                    Integer.parseInt(args[0]) << 4,
-                    Integer.parseInt(args[1]) << 4,
-                    Integer.parseInt(args[2]) << 4)
+                    Integer.parseInt(args[0]),
+                    Integer.parseInt(args[1]),
+                    Integer.parseInt(args[2]))
             );
-            sender.sendMessage(new TextComponentTranslation("mawm.command.cubepos2.set", args[0], args[1], args[2]));
+            sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.cubepos1.set", args[0], args[1], args[2]));
         }
     }
 }

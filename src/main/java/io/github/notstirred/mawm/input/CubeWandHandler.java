@@ -46,7 +46,7 @@ public class CubeWandHandler {
                 positions.setValue(new Vector3i(posX, posY, posZ));
 
             playerWandPositions.put(event.getEntityPlayer(), positions);
-            event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos1"));
+            event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos1", posX, posY, posZ));
         }
     }
 
@@ -66,7 +66,7 @@ public class CubeWandHandler {
                 positions = new AbstractMap.SimpleEntry<>(new Vector3i(posX, posY, posZ), positions.getValue());
 
             playerWandPositions.put(event.getEntityPlayer(), positions);
-            event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos2"));
+            event.getEntityPlayer().sendMessage(new TextComponentTranslation("mawm.cubewand.setpos2", posX, posY, posZ));
         }
     }
 }
