@@ -92,6 +92,7 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
                 }
                 break;
             case SET:
+            case REPLACE:
             case KEEP:
             case REMOVE:
                 vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
@@ -114,6 +115,7 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
     @Override
     public void addFreezeRegionsForTasks() {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
+        //TODO: SET doesn't need a SrcFreezeBox
         tasks.forEach(task -> {
             addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
             if(task.getOffset() != null) {
@@ -131,6 +133,7 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
                 case CUT:
                 case MOVE:
                 case REMOVE:
+                case REPLACE:
                 case SET:
                     addDstFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
                     break;

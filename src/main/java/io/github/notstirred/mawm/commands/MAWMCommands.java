@@ -16,6 +16,7 @@ public class MAWMCommands extends CommandTreeBase {
         super.addSubcommand(new CommandRegen());
         super.addSubcommand(new CommandMoveRegen());
         super.addSubcommand(new CommandSet());
+        super.addSubcommand(new CommandReplace());
     }
 
     /**

@@ -19,3 +19,5 @@ mawm.command.moveregen.usage=moveregen usage
 mawm.command.moveregen.no_args=Movement vector not supplied! Please say where to move the area eg: /mawm copy 0 1 0
 mawm.command.set.usage=set usage
 mawm.command.set.no_args=Missing block argument for set command!
+mawm.command.replace.usage=replace usage
+mawm.command.replace.no_args=Missing block arguments for set command!
