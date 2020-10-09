@@ -91,10 +91,14 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
                     vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
                 }
                 break;
+            case SET:
             case KEEP:
             case REMOVE:
                 vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
                 break;
+
+            default:
+                throw new IllegalStateException("Unexpected value: " + task.getType());
         }
 
         return vectors;
@@ -127,8 +131,12 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
                 case CUT:
                 case MOVE:
                 case REMOVE:
+                case SET:
                     addDstFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
                     break;
+
+                default:
+                    throw new IllegalStateException("Unexpected value: " + task.getType());
             }
         });
     }

@@ -2,10 +2,7 @@ package io.github.notstirred.mawm.commands;
 
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.Vector3i;
-import io.github.notstirred.mawm.commands.editing.CommandCopy;
-import io.github.notstirred.mawm.commands.editing.CommandCut;
-import io.github.notstirred.mawm.commands.editing.CommandMoveRegen;
-import io.github.notstirred.mawm.commands.editing.CommandRegen;
+import io.github.notstirred.mawm.commands.editing.*;
 import net.minecraft.command.ICommandSender;
 import net.minecraftforge.server.command.CommandTreeBase;
 
@@ -18,6 +15,7 @@ public class MAWMCommands extends CommandTreeBase {
         super.addSubcommand(new CommandCopy());
         super.addSubcommand(new CommandRegen());
         super.addSubcommand(new CommandMoveRegen());
+        super.addSubcommand(new CommandSet());
     }
 
     /**
