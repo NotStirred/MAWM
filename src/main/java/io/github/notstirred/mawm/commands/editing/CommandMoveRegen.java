@@ -3,6 +3,7 @@ package io.github.notstirred.mawm.commands.editing;
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
+import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
@@ -12,6 +13,7 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.WorldServer;
 
 import java.util.AbstractMap;
 
@@ -57,6 +59,11 @@ public class CommandMoveRegen extends CommandBase {
 
             ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.MOVE));
         }
-        sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
+        if(MAWM.isQueueMode) {
+            sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
+        } else {
+            if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() != 0)
+                MAWM.INSTANCE.convertCommand((WorldServer) sender.getEntityWorld());
+        }
     }
 }

@@ -73,6 +73,8 @@ public class MAWM {
 
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
+    public static boolean isQueueMode = false;
+
     @Mod.Instance(MOD_ID)
     public static MAWM INSTANCE;
 
