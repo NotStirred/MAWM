@@ -8,6 +8,7 @@ import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
+import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
@@ -38,7 +39,7 @@ public class CommandSet extends CommandBase {
             player = (EntityPlayer) sender.getCommandSenderEntity();
         }
         if (player != null) { //command came from a player
-            AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
+            MutablePair<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
             if (positions.getKey() == null)
                 throw new CommandException("mawm.cubewand.no_cubewandpos1");
             if (positions.getValue() == null)
@@ -56,14 +57,15 @@ public class CommandSet extends CommandBase {
             Block block = CommandBase.getBlockByText(sender, args[0]);
             IBlockState state = block.getDefaultState();
 
+            @SuppressWarnings("deprecation")
             int id = Block.BLOCK_STATE_IDS.get(state);
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new BlockEditTask(box, null, EditTask.Type.SET, (byte)(id >> 4 & 255), (byte)(id & 15)));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new BlockEditTask(box, null, EditTask.Type.SET, (byte)(id >> 4 & 255), (byte)(id & 15)));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
         } else {
             if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() != 0)
-                MAWM.INSTANCE.convertCommand((WorldServer) sender.getEntityWorld());
+                ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
         }
     }
 }

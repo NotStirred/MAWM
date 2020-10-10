@@ -1,26 +1,33 @@
 package io.github.notstirred.mawm.asm.mixininterfaces;
 
-import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.util.FreezableBox;
+import io.github.notstirred.mawm.util.MutablePair;
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
+import net.minecraft.command.ICommandSender;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.List;
 
 public interface IFreezableWorld {
-    enum ManipulateStage { NONE, WAITING_SRC_SAVE, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
+    enum ManipulateStage { NONE, STARTED, WAITING_SRC_SAVE, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
+
+    void convertCommand();
+
+    void startConverter();
 
     void swapModifiedRegionFilesForTasks();
 
     void addFreezeRegionsForTasks();
 
-    List<EditTask> getTasks();
-    void addTask(EditTask task);
+    void clearAndAddDeferredTasks();
+
+    List<MutablePair<ICommandSender, EditTask>> getTasks();
+    void addTask(ICommandSender sender, EditTask task);
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);

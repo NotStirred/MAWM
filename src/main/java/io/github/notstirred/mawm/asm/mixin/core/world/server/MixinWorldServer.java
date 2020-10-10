@@ -1,14 +1,24 @@
 package io.github.notstirred.mawm.asm.mixin.core.world.server;
 
+import cubicchunks.converter.headless.command.HeadlessCommandContext;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.MAWM;
+import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.converter.MAWMConverter;
 import io.github.notstirred.mawm.util.FreezableBox;
+import io.github.notstirred.mawm.util.MutablePair;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldServer;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.profiler.Profiler;
+import net.minecraft.world.World;
+import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
+import net.minecraft.world.storage.ISaveHandler;
+import net.minecraft.world.storage.WorldInfo;
 import org.spongepowered.asm.mixin.Mixin;
 
 import java.io.File;
@@ -16,14 +26,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Mixin(WorldServer.class)
-public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldServer {
-    List<EditTask> tasks = new ArrayList<>();
+public abstract class MixinWorldServer extends World implements IFreezableWorld, ICubicWorldServer {
+    protected MixinWorldServer(ISaveHandler saveHandlerIn, WorldInfo info, WorldProvider providerIn, Profiler profilerIn, boolean client) {
+        super(saveHandlerIn, info, providerIn, profilerIn, client);
+    }
+
+    List<MutablePair<ICommandSender, EditTask>> playerTaskPairs = new ArrayList<>();
+    List<MutablePair<ICommandSender, EditTask>> deferredPlayerTaskPairs = new ArrayList<>();
 
     private List<FreezableBox> srcFreezeBoxes = new ArrayList<>();
     private List<FreezableBox> dstFreezeBoxes = new ArrayList<>();
@@ -40,11 +52,45 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
     private static final Vector3i CC_REGION_SIZE = new Vector3i(16, 16, 16);
 
     @Override
-    public void swapModifiedRegionFilesForTasks() {
-        tasks.forEach(task -> getRegionFilesModifiedByTask(task).forEach((vec) -> {
+    public void convertCommand() {
+        manipulateStage = ManipulateStage.STARTED;
+        this.addFreezeRegionsForTasks();
+        isDstSavingLocked = true;
+        isDstSaveAddingLocked = true;
 
-                File saveLoc = ((WorldServer)(Object)this).getSaveHandler().getWorldDirectory();
-                File workingLoc = Paths.get(((WorldServer)(Object)this).getSaveHandler().getWorldDirectory().getParent() + "/mawmWorkingWorld").toFile();
+        ((IFreezableCubeProviderServer) chunkProvider).addSrcCubesToSave();
+        isSrcSaveAddingLocked = true;
+        manipulateStage = ManipulateStage.WAITING_SRC_SAVE;
+        //Continued in worldTick event on WAITING_SRC_SAVE
+    }
+
+    @Override
+    public void startConverter() {
+        HeadlessCommandContext context = new HeadlessCommandContext();
+
+        Path srcWorld = saveHandler.getWorldDirectory().toPath();
+        Path dstWorld = Paths.get(saveHandler.getWorldDirectory().getParent() + "/mawmWorkingWorld");
+
+        context.setSrcWorld(srcWorld);
+        context.setDstWorld(dstWorld);
+        context.setConverterName("Relocating");
+        context.setInFormat("CubicChunks");
+        context.setOutFormat("CubicChunks");
+
+        List<EditTask> tasks = new ArrayList<>();
+        playerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
+
+        MAWMConverter.convert(context, tasks, () -> {
+            manipulateStage = ManipulateStage.CONVERT_FINISHED;
+        });
+    }
+
+    @Override
+    public void swapModifiedRegionFilesForTasks() {
+        playerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
+
+                File saveLoc = saveHandler.getWorldDirectory();
+                File workingLoc = Paths.get(saveHandler.getWorldDirectory().getParent() + "/mawmWorkingWorld").toFile();
 
                 Path backupLoc = Paths.get(saveLoc.getAbsolutePath() + "/region3d.bak/");
                 if(!Files.exists(backupLoc)) {
@@ -116,7 +162,8 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
     public void addFreezeRegionsForTasks() {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
         //TODO: SET doesn't need a SrcFreezeBox
-        tasks.forEach(task -> {
+        playerTaskPairs.forEach(pair -> {
+            EditTask task = pair.getValue();
             addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
             if(task.getOffset() != null) {
                 addDstFreezeBox(new FreezableBox(
@@ -145,12 +192,24 @@ public abstract class MixinWorldServer implements IFreezableWorld, ICubicWorldSe
     }
 
     @Override
-    public List<EditTask> getTasks() {
-        return tasks;
+    public void clearAndAddDeferredTasks() {
+        playerTaskPairs.clear();
+        for(Iterator<MutablePair<ICommandSender, EditTask>> iter = deferredPlayerTaskPairs.iterator(); iter.hasNext();) {
+            playerTaskPairs.add(iter.next());
+            iter.remove();
+        }
+    }
+
+    @Override
+    public List<MutablePair<ICommandSender, EditTask>> getTasks() {
+        return playerTaskPairs;
     }
     @Override
-    public void addTask(EditTask task) {
-        tasks.add(task);
+    public void addTask(ICommandSender sender, EditTask task) {
+        if(manipulateStage == ManipulateStage.NONE)
+            playerTaskPairs.add(new MutablePair<>(sender, task));
+        else
+            deferredPlayerTaskPairs.add(new MutablePair<>(sender, task));
     }
 
     @Override

@@ -7,6 +7,7 @@ import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
+import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -35,7 +36,7 @@ public class CommandCopy extends CommandBase {
             player = (EntityPlayer) sender.getCommandSenderEntity();
         }
         if (player != null) { //command came from a player
-            AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
+            MutablePair<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
             if (positions.getKey() == null)
                 throw new CommandException("mawm.cubewand.no_cubewandpos1");
             if (positions.getValue() == null)
@@ -57,13 +58,13 @@ public class CommandCopy extends CommandBase {
             } else
                 throw new CommandException("mawm.command.copy.no_args");
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new EditTask(box, offset, EditTask.Type.COPY));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new EditTask(box, offset, EditTask.Type.COPY));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
         } else {
             if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() != 0)
-                MAWM.INSTANCE.convertCommand((WorldServer) sender.getEntityWorld());
+                ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
         }
     }
 }

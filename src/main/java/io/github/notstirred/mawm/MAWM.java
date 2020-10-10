@@ -1,6 +1,5 @@
 package io.github.notstirred.mawm;
 
-import cubicchunks.converter.headless.command.HeadlessCommandContext;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
@@ -11,7 +10,6 @@ import io.github.notstirred.mawm.commands.debug.CommandConvert;
 import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
-import io.github.notstirred.mawm.converter.MAWMConverter;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -21,8 +19,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /*
 Stop dst cubes from being saved
@@ -101,7 +97,7 @@ public class MAWM {
                     LOGGER.info("REGIONS CLEARED");
                     ((IFreezableWorld) event.world).setSrcFrozen(true);
                     ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
-                    startConverter((WorldServer) event.world);
+                    ((IFreezableWorld) event.world).startConverter();
                 } catch (Exception e) {
                     LOGGER.fatal(e);
                 }
@@ -128,35 +124,9 @@ public class MAWM {
             ((IFreezableWorld) event.world).setDstSaveAddingLocked(false);
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
-            ((IFreezableWorld) event.world).getTasks().clear();
+            ((IFreezableWorld) event.world).clearAndAddDeferredTasks();
+            //((IFreezableWorld) event.world).getTasks().clear(); removed because it shouldn't be needed when tasks are a queue
             ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
         }
-    }
-
-    public void convertCommand(WorldServer world) {
-        ((IFreezableWorld) world).addFreezeRegionsForTasks();
-        ((IFreezableWorld) world).setDstSavingLocked(true);
-        ((IFreezableWorld) world).setDstSaveAddingLocked(true);
-
-        ((IFreezableCubeProviderServer) world.getChunkProvider()).addSrcCubesToSave();
-        ((IFreezableWorld) world).setSrcSaveAddingLocked(true);
-        ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE);
-        //Continued in worldTick event on WAITING_SRC_SAVE
-    }
-
-    public static void startConverter(WorldServer world) {
-        HeadlessCommandContext context = new HeadlessCommandContext();
-
-        Path srcWorld = world.getSaveHandler().getWorldDirectory().toPath();
-        Path dstWorld = Paths.get(world.getSaveHandler().getWorldDirectory().getParent() + "/mawmWorkingWorld");
-
-        context.setSrcWorld(srcWorld);
-        context.setDstWorld(dstWorld);
-        context.setConverterName("Relocating");
-        context.setInFormat("CubicChunks");
-        context.setOutFormat("CubicChunks");
-        MAWMConverter.convert(context, ((IFreezableWorld) world).getTasks(), () -> {
-            ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERT_FINISHED);
-        });
     }
 }

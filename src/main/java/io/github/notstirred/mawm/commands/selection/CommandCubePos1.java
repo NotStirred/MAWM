@@ -2,6 +2,7 @@ package io.github.notstirred.mawm.commands.selection;
 
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.input.CubeWandHandler;
+import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -34,16 +35,12 @@ public class CommandCubePos1 extends CommandBase {
             if (args.length != 3)
                 throw new CommandException("mawm.command.cubepos1.invalid_args");
 
-            AbstractMap.SimpleEntry<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
+            MutablePair<Vector3i, Vector3i> positions = CubeWandHandler.getWandLocationsForPlayer(player);
 
-            Map<EntityPlayer, AbstractMap.SimpleEntry<Vector3i, Vector3i>> locations = CubeWandHandler.getWandLocations();
-            locations.put(player,
-                    new AbstractMap.SimpleEntry<>(new Vector3i(
-                            Integer.parseInt(args[0]) << 4,
-                            Integer.parseInt(args[1]) << 4,
-                            Integer.parseInt(args[2]) << 4),
-                            positions == null ? null : positions.getValue()
-                    )
+            positions.setKey(new Vector3i(
+                    Integer.parseInt(args[0]) << 4,
+                    Integer.parseInt(args[1]) << 4,
+                    Integer.parseInt(args[2]) << 4)
             );
             sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.cubepos1.set", args[0], args[1], args[2]));
         }

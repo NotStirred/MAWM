@@ -7,7 +7,7 @@ import cubicchunks.regionlib.impl.EntryLocation3D;
 
 public class FreezableBox {
 
-    private BoundingBox box;
+    private final BoundingBox box;
 
     public FreezableBox(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
         box = new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
