@@ -10,6 +10,7 @@ import io.github.notstirred.mawm.commands.debug.CommandConvert;
 import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -125,7 +126,6 @@ public class MAWM {
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
             ((IFreezableWorld) event.world).clearAndAddDeferredTasks();
-            //((IFreezableWorld) event.world).getTasks().clear(); removed because it shouldn't be needed when tasks are a queue
             ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
         }
     }
