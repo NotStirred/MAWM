@@ -1,6 +1,7 @@
 package io.github.notstirred.mawm.asm.mixin.core.world.server;
 
 import cubicchunks.converter.headless.command.HeadlessCommandContext;
+import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
@@ -124,38 +125,47 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         switch(task.getType()) {
             case MOVE:
-                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
                 break;
             case CUT:
-                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
+                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox()));
                 if(task.getOffset() != null) {
-                    vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                    vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
                 }
                 break;
             case COPY:
                 if(task.getOffset() != null) {
-                    vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos().add(vec3iAsRegionCoords(task.getOffset(), CC_REGION_SIZE)));
+                    vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
                 }
                 break;
             case SET:
             case REPLACE:
             case KEEP:
             case REMOVE:
-                vectors.add(task.getSourceBox().asRegionCoords(CC_REGION_SIZE).getMinPos());
+                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox()));
                 break;
 
             default:
                 throw new IllegalStateException("Unexpected value: " + task.getType());
         }
 
+        vectors.forEach(vector3i -> MAWM.LOGGER.info("Reloading region: " + vector3i));
         return vectors;
     }
 
-    private Vector3i vec3iAsRegionCoords(Vector3i vec, Vector3i regionSize) {
-        //TODO: add this to Vector3i in the converter
-        return new Vector3i(Math.floorDiv(vec.getX(), regionSize.getX()),
-                Math.floorDiv(vec.getY(), regionSize.getY()),
-                Math.floorDiv(vec.getZ(), regionSize.getZ()));
+    private Set<Vector3i> getRegionFilesWithinBoundingBox(BoundingBox boundingBox) {
+        Set<Vector3i> affectedRegions = new HashSet<>();
+
+        BoundingBox regionBox = boundingBox.asRegionCoords(CC_REGION_SIZE);
+
+        for(int x = regionBox.getMinPos().getX(); x <= regionBox.getMaxPos().getX(); x++) {
+            for(int y = regionBox.getMinPos().getY(); y <= regionBox.getMaxPos().getY(); y++) {
+                for(int z = regionBox.getMinPos().getZ(); z <= regionBox.getMaxPos().getZ(); z++) {
+                    affectedRegions.add(new Vector3i(x, y, z));
+                }
+            }
+        }
+        return affectedRegions;
     }
 
     @Override
