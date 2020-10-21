@@ -1,3 +1,5 @@
+mawm.execute.error.missing_existing_region=Something went very wrong! Couldn't find the existing region file to move to backups at position %s!
+
 mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! (%s, %s, %s), (%s, %s, %s)
 mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! %s
 mawm.command.debug.freezebox.success=Box added to frozen boxes!

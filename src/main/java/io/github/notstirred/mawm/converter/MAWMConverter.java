@@ -19,7 +19,7 @@ public class MAWMConverter {
 
         conf.set("relocations", tasks);
 
-        tasks.forEach((task) -> MAWM.LOGGER.info(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
                 Registry.getLevelConverter(context.getInFormat(), context.getOutFormat(), context.getConverterName()).apply(context.getSrcWorld(), context.getDstWorld()),

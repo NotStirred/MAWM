@@ -20,6 +20,7 @@ import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
+import net.minecraftforge.server.command.TextComponentHelper;
 import org.spongepowered.asm.mixin.Mixin;
 
 import java.io.File;
@@ -88,34 +89,50 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
     @Override
     public void swapModifiedRegionFilesForTasks() {
-        playerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
+        File saveLoc = saveHandler.getWorldDirectory();
+        String workingLocAbsolutePath = Paths.get(saveLoc.getParent() + "/mawmWorkingWorld").toFile().getAbsolutePath();
+        String saveLocAbsolutePath = saveLoc.getAbsolutePath();
 
-                File saveLoc = saveHandler.getWorldDirectory();
-                File workingLoc = Paths.get(saveHandler.getWorldDirectory().getParent() + "/mawmWorkingWorld").toFile();
-
-                Path backupLoc = Paths.get(saveLoc.getAbsolutePath() + "/region3d.bak/");
-                if(!Files.exists(backupLoc)) {
-                    try {
-                        Files.createDirectories(backupLoc);
-                    } catch(IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                String dstVecPath = saveLoc.getAbsolutePath() + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr";
-                Path bakVecPath = Paths.get(saveLoc.getAbsolutePath() + "/region3d.bak/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+        Path backupLoc = Paths.get(saveLocAbsolutePath + "/region3d.bak/");
+        if (!Files.exists(backupLoc)) {
             try {
-                if(Files.exists(bakVecPath)) {
-                    Files.delete(bakVecPath);
-                    MAWM.LOGGER.info("Deleted existing backup region file");
-                }
-                Files.move(Paths.get(dstVecPath), bakVecPath);
-                MAWM.LOGGER.info("Moved world region file into backup loc");
-                Files.move(Paths.get(workingLoc.getAbsolutePath() + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr"),
-                        Paths.get(dstVecPath));
-                MAWM.LOGGER.info("Moved output region into world loc");
-            } catch(IOException e) {
+                Files.createDirectories(backupLoc);
+            } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+
+        playerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
+            Path workingLocPath = Paths.get(workingLocAbsolutePath + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            if(!Files.exists(workingLocPath))
+                return;
+
+            Path dstVecPath = Paths.get(saveLocAbsolutePath + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            Path bakVecPath = Paths.get(saveLocAbsolutePath + "/region3d.bak/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+
+            try {
+                Files.delete(bakVecPath);
+                MAWM.LOGGER.debug("Deleted existing backup region file");
+            } catch(IOException e) {
+                MAWM.LOGGER.debug("No backup region file existed to delete at " + bakVecPath);
+            }
+            try {
+                Files.move(dstVecPath, bakVecPath);
+                MAWM.LOGGER.debug("Moved world region file into backup loc");
+            } catch (IOException e) {
+                MAWM.LOGGER.error("Couldn't find existing region file to move to backups at " + bakVecPath);
+                e.printStackTrace();
+                task.getKey().sendMessage(TextComponentHelper.createComponentTranslation(task.getKey(),
+                    "mawm.execute.error.missing_existing_region",
+                    ("(" + vec.getX() + ", " + vec.getY() + ", " + vec.getZ() + ")")
+                ));
+            }
+
+            try {
+                Files.move(workingLocPath, dstVecPath);
+                MAWM.LOGGER.debug("Moved output region into world loc");
+            } catch (IOException e) {
+                MAWM.LOGGER.debug("No region file exists at " + workingLocPath + ", assuming converter had empty region at that location, skipping.");
             }
         }));
     }
@@ -148,8 +165,6 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             default:
                 throw new IllegalStateException("Unexpected value: " + task.getType());
         }
-
-        vectors.forEach(vector3i -> MAWM.LOGGER.info("Reloading region: " + vector3i));
         return vectors;
     }
 
@@ -171,7 +186,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     @Override
     public void addFreezeRegionsForTasks() {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
-        //TODO: SET doesn't need a SrcFreezeBox
+        //TODO: SET & REPLACE don't need a SrcFreezeBox
         playerTaskPairs.forEach(pair -> {
             EditTask task = pair.getValue();
             addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));

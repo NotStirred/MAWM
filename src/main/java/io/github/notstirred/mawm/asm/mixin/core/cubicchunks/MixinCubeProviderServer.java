@@ -261,9 +261,9 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         Map<IColumn, List<EntityPlayerMP>> columnPlayerMap = new IdentityHashMap<>(1000);
 
         unfreezeUnloadBarrier(playerCubeMap, dstCubesToReload, cubePlayerMap, columnPlayerMap);
-        MAWM.LOGGER.info("Barrier unloaded");
+        MAWM.LOGGER.debug("Barrier unloaded");
         unfreezeUnloadDst(playerCubeMap, dstCubesToReload, cubePlayerMap, columnPlayerMap);
-        MAWM.LOGGER.info("Dst unloaded");
+        MAWM.LOGGER.debug("Dst unloaded");
 
         ((IFreezableWorld) world).setDstFrozen(false);
 
@@ -273,9 +273,9 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         ((IFreezableWorld) world).setManipulateStage(IFreezableWorld.ManipulateStage.RELOADING_CUBES);
 
         unfreezeReloadBarrier(playerCubeMap, cubePlayerMap, columnPlayerMap);
-        MAWM.LOGGER.info("Barrier reloaded");
+        MAWM.LOGGER.debug("Barrier reloaded");
         unfreezeReloadDst(dstCubesToReload);
-        MAWM.LOGGER.info("Dst reloaded");
+        MAWM.LOGGER.debug("Dst reloaded");
     }
 
     @Override
