@@ -6,18 +6,19 @@ import cubicchunks.converter.lib.convert.WorldConverter;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class MAWMConverterWorker {
     private final WorldConverter<?, ?> converter;
-    private final Runnable onFail;
+    private final Consumer<Throwable> onFail;
     private Runnable onDone;
 
     private long lastProcessTime = System.currentTimeMillis();
 
     private static final Logger LOGGER = Logger.getLogger(EditTaskCommands.class.getSimpleName());
 
-    public MAWMConverterWorker(WorldConverter<?, ?> converter, Runnable onDone, Runnable onFail) {
+    public MAWMConverterWorker(WorldConverter<?, ?> converter, Runnable onDone, Consumer<Throwable> onFail) {
         this.converter = converter;
         this.onDone = onDone;
         this.onFail = onFail;
@@ -34,7 +35,7 @@ public class MAWMConverterWorker {
 
             @Override public IProgressListener.ErrorHandleResult error(Throwable t) {
                 try {
-                    onFail.run();
+                    onFail.accept(t);
                     return showErrorMessage(t);
                 } catch (Exception e) {
                     e.printStackTrace();

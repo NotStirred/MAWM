@@ -10,11 +10,10 @@ import io.github.notstirred.mawm.MAWM;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class MAWMConverter {
-    public static void convert(HeadlessCommandContext context, List<EditTask> tasks, Runnable onDone) {
-        AtomicBoolean failed = new AtomicBoolean(false);
+    public static void convert(HeadlessCommandContext context, List<EditTask> tasks, Runnable onDone, Consumer<Throwable> onFail) {
         ConverterConfig conf = new ConverterConfig(new HashMap<>());
 
         conf.set("relocations", tasks);
@@ -28,11 +27,10 @@ public class MAWMConverter {
                 Registry.getWriter(context.getOutFormat()).apply(context.getDstWorld())
         );
 
-        MAWMConverterWorker w = new MAWMConverterWorker(converter, onDone, () -> failed.set(true));
+        MAWMConverterWorker w = new MAWMConverterWorker(converter, onDone, onFail);
         try {
             w.convert();
         } catch (IOException e) {
-            failed.set(true);
             e.printStackTrace();
         }
     }

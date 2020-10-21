@@ -29,9 +29,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer extends World implements IFreezableWorld, ICubicWorldServer {
+
     protected MixinWorldServer(ISaveHandler saveHandlerIn, WorldInfo info, WorldProvider providerIn, Profiler profilerIn, boolean client) {
         super(saveHandlerIn, info, providerIn, profilerIn, client);
     }
@@ -82,9 +84,39 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         List<EditTask> tasks = new ArrayList<>();
         playerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
 
+        long startTime = System.nanoTime();
+
         MAWMConverter.convert(context, tasks, () -> {
             manipulateStage = ManipulateStage.CONVERT_FINISHED;
-        });
+            double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
+
+            int playerCount = new HashSet(Arrays.asList(playerTaskPairs.toArray())).size();
+
+            int cubeCount = 0;
+            for (MutablePair<ICommandSender, EditTask> playerTaskPair : playerTaskPairs) {
+                BoundingBox sourceBox = playerTaskPair.getValue().getSourceBox();
+                Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
+                cubeCount += taskDimensions.getX() * taskDimensions.getY() * taskDimensions.getZ();
+                //TODO: add per-task-type cube counting
+            }
+
+            double cubesPerSecond = cubeCount / conversionTime;
+            double blocksPerSecond = (cubeCount * (16 * 16 * 16)) / conversionTime;
+            playerTaskPairs.forEach(pair -> {
+                pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
+                    "mawm.execute.completed.stats",
+                    playerTaskPairs.size(),
+                    playerCount,
+                    Math.floor(cubesPerSecond),
+                    Math.floor(blocksPerSecond)
+                ));
+            });
+        }, (throwable -> playerTaskPairs.forEach(pair -> {
+            pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
+                "mawm.execute.error.converter_error"
+            ));
+            MAWM.LOGGER.fatal("Unrecoverable converter error!", throwable);
+        })));
     }
 
     @Override
