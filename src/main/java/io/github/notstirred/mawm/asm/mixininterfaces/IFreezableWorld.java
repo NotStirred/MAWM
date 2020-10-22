@@ -24,10 +24,11 @@ public interface IFreezableWorld {
 
     void addFreezeRegionsForTasks();
 
-    void clearAndAddDeferredTasks();
-
     List<MutablePair<ICommandSender, EditTask>> getTasks();
     void addTask(ICommandSender sender, EditTask task);
+
+    List<MutablePair<ICommandSender, EditTask>> getDeferredTasks();
+    void addDeferredTasks();
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);

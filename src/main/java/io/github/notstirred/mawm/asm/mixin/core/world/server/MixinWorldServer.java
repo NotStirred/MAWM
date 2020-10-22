@@ -38,7 +38,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         super(saveHandlerIn, info, providerIn, profilerIn, client);
     }
 
-    List<MutablePair<ICommandSender, EditTask>> playerTaskPairs = new ArrayList<>();
+    List<MutablePair<ICommandSender, EditTask>> activePlayerTaskPairs = new ArrayList<>();
     List<MutablePair<ICommandSender, EditTask>> deferredPlayerTaskPairs = new ArrayList<>();
 
     private List<FreezableBox> srcFreezeBoxes = new ArrayList<>();
@@ -58,7 +58,10 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     @Override
     public void convertCommand() {
         manipulateStage = ManipulateStage.STARTED;
+
+        addDeferredTasks();
         this.addFreezeRegionsForTasks();
+
         isDstSavingLocked = true;
         isDstSaveAddingLocked = true;
 
@@ -82,7 +85,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         context.setOutFormat("CubicChunks");
 
         List<EditTask> tasks = new ArrayList<>();
-        playerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
+        activePlayerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
 
         long startTime = System.nanoTime();
 
@@ -90,10 +93,10 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             manipulateStage = ManipulateStage.CONVERT_FINISHED;
             double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
 
-            int playerCount = new HashSet(Arrays.asList(playerTaskPairs.toArray())).size();
+            int playerCount = new HashSet(Arrays.asList(activePlayerTaskPairs.toArray())).size();
 
             int cubeCount = 0;
-            for (MutablePair<ICommandSender, EditTask> playerTaskPair : playerTaskPairs) {
+            for (MutablePair<ICommandSender, EditTask> playerTaskPair : activePlayerTaskPairs) {
                 BoundingBox sourceBox = playerTaskPair.getValue().getSourceBox();
                 Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
                 cubeCount += taskDimensions.getX() * taskDimensions.getY() * taskDimensions.getZ();
@@ -102,16 +105,16 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
             double cubesPerSecond = cubeCount / conversionTime;
             double blocksPerSecond = (cubeCount * (16 * 16 * 16)) / conversionTime;
-            playerTaskPairs.forEach(pair -> {
+            activePlayerTaskPairs.forEach(pair -> {
                 pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
                     "mawm.execute.completed.stats",
-                    playerTaskPairs.size(),
+                    activePlayerTaskPairs.size(),
                     playerCount,
                     Math.floor(cubesPerSecond),
                     Math.floor(blocksPerSecond)
                 ));
             });
-        }, (throwable -> playerTaskPairs.forEach(pair -> {
+        }, (throwable -> activePlayerTaskPairs.forEach(pair -> {
             pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
                 "mawm.execute.error.converter_error"
             ));
@@ -134,7 +137,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             }
         }
 
-        playerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
+        activePlayerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
             Path workingLocPath = Paths.get(workingLocAbsolutePath + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
             if(!Files.exists(workingLocPath))
                 return;
@@ -219,7 +222,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     public void addFreezeRegionsForTasks() {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
         //TODO: SET & REPLACE don't need a SrcFreezeBox
-        playerTaskPairs.forEach(pair -> {
+        activePlayerTaskPairs.forEach(pair -> {
             EditTask task = pair.getValue();
             addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
             if(task.getOffset() != null) {
@@ -249,24 +252,24 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     }
 
     @Override
-    public void clearAndAddDeferredTasks() {
-        playerTaskPairs.clear();
-        for(Iterator<MutablePair<ICommandSender, EditTask>> iter = deferredPlayerTaskPairs.iterator(); iter.hasNext();) {
-            playerTaskPairs.add(iter.next());
-            iter.remove();
-        }
+    public List<MutablePair<ICommandSender, EditTask>> getDeferredTasks() {
+        return deferredPlayerTaskPairs;
+    }
+
+    @Override
+    public void addDeferredTasks() {
+        activePlayerTaskPairs.clear();
+        activePlayerTaskPairs.addAll(deferredPlayerTaskPairs);
+        deferredPlayerTaskPairs.clear();
     }
 
     @Override
     public List<MutablePair<ICommandSender, EditTask>> getTasks() {
-        return playerTaskPairs;
+        return activePlayerTaskPairs;
     }
     @Override
     public void addTask(ICommandSender sender, EditTask task) {
-        if(manipulateStage == ManipulateStage.NONE)
-            playerTaskPairs.add(new MutablePair<>(sender, task));
-        else
-            deferredPlayerTaskPairs.add(new MutablePair<>(sender, task));
+        deferredPlayerTaskPairs.add(new MutablePair<>(sender, task));
     }
 
     @Override

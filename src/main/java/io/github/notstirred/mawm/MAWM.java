@@ -125,8 +125,10 @@ public class MAWM {
             ((IFreezableWorld) event.world).setDstSaveAddingLocked(false);
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
-            ((IFreezableWorld) event.world).clearAndAddDeferredTasks();
-            ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
+            if(((IFreezableWorld) event.world).getDeferredTasks().size() != 0) //If there were any deferred tasks, execute them.
+                ((IFreezableWorld) event.world).convertCommand();
+            else
+                ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
         }
     }
 }
