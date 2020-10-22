@@ -1,5 +1,6 @@
 package io.github.notstirred.mawm;
 
+import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
@@ -10,7 +11,8 @@ import io.github.notstirred.mawm.commands.debug.CommandConvert;
 import io.github.notstirred.mawm.commands.debug.CommandFreeze;
 import io.github.notstirred.mawm.commands.debug.CommandFreezeBox;
 import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
-import net.minecraft.util.math.Vec3i;
+import io.github.notstirred.mawm.util.LimitedFifoQueue;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
@@ -20,6 +22,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /*
 Stop dst cubes from being saved
@@ -52,8 +57,6 @@ allow dst cubes & cols being saved
 custom reader to allow for piping nbt data straight to it on save with a higher priority than the one read from disk
  */
 
-//TODO: fix issues with multiple region files being operated on at once
-//TODO: single undo
 //TODO: configurable number of undos
 //    - perhaps doable through having region files named in a queue, such as 0.0.0.3dr.bak1, with higher number being more recent
 @Mod(
@@ -72,6 +75,8 @@ public class MAWM {
 
     public static boolean isQueueMode = false;
 
+    private final Map<UUID, LimitedFifoQueue<EditTask>> playerTaskHistory = new HashMap<>();
+
     @Mod.Instance(MOD_ID)
     public static MAWM INSTANCE;
 
@@ -89,26 +94,50 @@ public class MAWM {
     public static void worldTick(TickEvent.WorldTickEvent event) {
         if(event.world.isRemote) return;
         //TODO: fix issues with event.world possibly not being the world the player is in (nether, end, etc)
-        if(((IFreezableWorld) event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE) {
+        IFreezableWorld world = ((IFreezableWorld) event.world);
+
+        if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.READY) {
+            if(world.isTasksExecuteRequested())
+                world.convertCommand();
+            else if(world.isUndoTasksExecuteRequested())
+                world.undoConvertCommand();
+        }
+        if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE) {
             IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
             if (!regionCubeIO.hasFrozenSrcColumnsToBeSaved() && !regionCubeIO.hasFrozenSrcCubesToBeSaved()) {
                 try {
-                    ((IFreezableWorld) event.world).setSrcSavingLocked(true);
+                    world.setSrcSavingLocked(true);
                     SharedCachedRegionProvider.clearRegions();
-                    LOGGER.info("REGIONS CLEARED");
-                    ((IFreezableWorld) event.world).setSrcFrozen(true);
-                    ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
-                    ((IFreezableWorld) event.world).startConverter();
+                    LOGGER.debug("REGIONS CLEARED");
+                    world.setSrcFrozen(true);
+                    world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
+                    world.startConverter();
                 } catch (Exception e) {
                     LOGGER.fatal(e);
                 }
             } else {
-                LOGGER.info("waiting for affected cubes & columns to be saved");
+                LOGGER.debug("waiting for affected cubes & columns to be saved");
+            }
+        } else if(((IFreezableWorld)event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE_UNDO) {
+            IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
+            if (!regionCubeIO.hasFrozenSrcColumnsToBeSaved() && !regionCubeIO.hasFrozenSrcCubesToBeSaved()) {
+                try {
+                    world.setSrcSavingLocked(true);
+                    SharedCachedRegionProvider.clearRegions();
+                    LOGGER.debug("REGIONS CLEARED");
+                    world.setSrcFrozen(true);
+                    world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
+                    world.startUndoConverter();
+                } catch (Exception e) {
+                    LOGGER.fatal(e);
+                }
+            } else {
+                LOGGER.debug("waiting for affected cubes & columns to be saved");
             }
         }
-        if(((IFreezableWorld) event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED) {
-            ((IFreezableWorld) event.world).setSrcFrozen(false);
-            ((IFreezableWorld) event.world).setDstFrozen(true);
+        if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED) {
+            world.setSrcFrozen(false);
+            world.setDstFrozen(true);
             try {
                 SharedCachedRegionProvider.clearRegions();
             } catch (IOException e) {
@@ -116,19 +145,27 @@ public class MAWM {
             }
 
             ((IFreezableWorld)event.world).swapModifiedRegionFilesForTasks();
-            LOGGER.info("Region files copied");
-            ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
+            LOGGER.debug("Region files copied");
+            world.setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
 
-            ((IFreezableWorld) event.world).setSrcSavingLocked(false);
-            ((IFreezableWorld) event.world).setSrcSaveAddingLocked(false);
-            ((IFreezableWorld) event.world).setDstSavingLocked(false);
-            ((IFreezableWorld) event.world).setDstSaveAddingLocked(false);
+            world.setSrcSavingLocked(false);
+            world.setSrcSaveAddingLocked(false);
+            world.setDstSavingLocked(false);
+            world.setDstSaveAddingLocked(false);
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
-            if(((IFreezableWorld) event.world).getDeferredTasks().size() != 0) //If there were any deferred tasks, execute them.
-                ((IFreezableWorld) event.world).convertCommand();
+            if(world.getDeferredTasks().size() != 0) //If there were any deferred tasks, execute them.
+                world.convertCommand();
             else
-                ((IFreezableWorld) event.world).setManipulateStage(IFreezableWorld.ManipulateStage.NONE);
+                world.setManipulateStage(IFreezableWorld.ManipulateStage.READY);
         }
+    }
+
+    public Map<UUID, LimitedFifoQueue<EditTask>> getPlayerTaskHistory() {
+        return playerTaskHistory;
+    }
+
+    public void playerDidTask(EntityPlayer sender, EditTask task) {
+        playerTaskHistory.computeIfAbsent(sender.getUniqueID(), id -> new LimitedFifoQueue<>(10)).push(task);
     }
 }

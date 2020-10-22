@@ -13,6 +13,7 @@ import static java.lang.Math.floorDiv;
 public class MAWMCommands extends CommandTreeBase {
     public MAWMCommands() {
         super.addSubcommand(new CommandExecute());
+        super.addSubcommand(new CommandUndo());
         super.addSubcommand(new CommandCut());
         super.addSubcommand(new CommandCopy());
         super.addSubcommand(new CommandRegen());

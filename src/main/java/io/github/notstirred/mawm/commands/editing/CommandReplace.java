@@ -6,7 +6,6 @@ import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
-import io.github.notstirred.mawm.commands.MAWMCommands;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.block.Block;
@@ -17,9 +16,6 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.WorldServer;
-
-import java.util.AbstractMap;
 
 public class CommandReplace extends CommandBase {
     @Override
@@ -72,8 +68,7 @@ public class CommandReplace extends CommandBase {
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
         } else {
-            if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() != 0)
-                ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
+            ((IFreezableWorld) sender.getEntityWorld()).requestTasksExecute();
         }
     }
 }

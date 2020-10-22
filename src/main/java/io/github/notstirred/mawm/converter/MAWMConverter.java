@@ -1,11 +1,18 @@
 package io.github.notstirred.mawm.converter;
 
 import cubicchunks.converter.headless.command.HeadlessCommandContext;
-import cubicchunks.converter.lib.Registry;
 import cubicchunks.converter.lib.conf.ConverterConfig;
 import cubicchunks.converter.lib.convert.WorldConverter;
+import cubicchunks.converter.lib.convert.cc2ccmerging.CC2CCDualSourceMergingDataConverter;
+import cubicchunks.converter.lib.convert.cc2ccmerging.CC2CCDualSourceMergingLevelInfoConverter;
+import cubicchunks.converter.lib.convert.cc2ccrelocating.CC2CCRelocatingDataConverter;
+import cubicchunks.converter.lib.convert.cc2ccrelocating.CC2CCRelocatingLevelInfoConverter;
+import cubicchunks.converter.lib.convert.io.CubicChunkReader;
+import cubicchunks.converter.lib.convert.io.CubicChunkWriter;
+import cubicchunks.converter.lib.convert.io.DualSourceCubicChunkReader;
 import cubicchunks.converter.lib.util.EditTask;
 import io.github.notstirred.mawm.MAWM;
+import io.github.notstirred.mawm.commands.DualSourceCommandContext;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -21,10 +28,32 @@ public class MAWMConverter {
         tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
-                Registry.getLevelConverter(context.getInFormat(), context.getOutFormat(), context.getConverterName()).apply(context.getSrcWorld(), context.getDstWorld()),
-                Registry.getReader(context.getInFormat()).apply(context.getSrcWorld(), conf),
-                Registry.getConverter(context.getInFormat(), context.getOutFormat(), context.getConverterName()).apply(conf),
-                Registry.getWriter(context.getOutFormat()).apply(context.getDstWorld())
+            new CC2CCRelocatingLevelInfoConverter(context.getSrcWorld(), context.getDstWorld()),
+            new CubicChunkReader(context.getSrcWorld(), conf),
+            new CC2CCRelocatingDataConverter(conf),
+            new CubicChunkWriter(context.getDstWorld())
+        );
+
+        MAWMConverterWorker w = new MAWMConverterWorker(converter, onDone, onFail);
+        try {
+            w.convert();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void convertUndo(DualSourceCommandContext context, List<EditTask> tasks, Runnable onDone, Consumer<Throwable> onFail) {
+        ConverterConfig conf = new ConverterConfig(new HashMap<>());
+
+        conf.set("relocations", tasks);
+
+        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+
+        WorldConverter<?, ?> converter = new WorldConverter<>(
+            new CC2CCDualSourceMergingLevelInfoConverter(context.getPriorityWorld(), context.getFallbackWorld(), context.getDstWorld()),
+            new DualSourceCubicChunkReader(context.getPriorityWorld(), context.getFallbackWorld(), conf),
+            new CC2CCDualSourceMergingDataConverter(conf),
+            new CubicChunkWriter(context.getDstWorld())
         );
 
         MAWMConverterWorker w = new MAWMConverterWorker(converter, onDone, onFail);

@@ -60,8 +60,7 @@ public class CommandExpand extends CommandBase {
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
         } else {
-            if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() != 0)
-                ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
+            ((IFreezableWorld) sender.getEntityWorld()).requestTasksExecute();
         }
     }
 }

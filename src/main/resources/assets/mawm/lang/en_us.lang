@@ -1,6 +1,9 @@
 mawm.execute.error.missing_existing_region=Something went very wrong! Couldn't find the existing region file to move to backups at position %s!
 mawm.execute.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
-mawm.execute.completed.stats=%d tasks completed for %d players - (%dCPS)(%dBPS)
+mawm.execute.completed.stats=%d tasks completed for %d players in %d seconds - (%dCPS)(%dBPS)
+mawm.undo.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
+mawm.undo.completed.stats=%d tasks completed for %d players in %d seconds
+mawm.command.undo.usage=undo usage
 
 mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! (%s, %s, %s), (%s, %s, %s)
 mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! %s

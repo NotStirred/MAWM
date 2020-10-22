@@ -9,11 +9,13 @@ import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.commands.DualSourceCommandContext;
 import io.github.notstirred.mawm.converter.MAWMConverter;
 import io.github.notstirred.mawm.util.FreezableBox;
 import io.github.notstirred.mawm.util.MutablePair;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldServer;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
@@ -33,18 +35,23 @@ import java.util.concurrent.TimeUnit;
 
 @Mixin(WorldServer.class)
 public abstract class MixinWorldServer extends World implements IFreezableWorld, ICubicWorldServer {
-
     protected MixinWorldServer(ISaveHandler saveHandlerIn, WorldInfo info, WorldProvider providerIn, Profiler profilerIn, boolean client) {
         super(saveHandlerIn, info, providerIn, profilerIn, client);
     }
 
+    private boolean tasksExecuteRequested = false;
+    private boolean undoTasksExecuteRequested = false;
+
     List<MutablePair<ICommandSender, EditTask>> activePlayerTaskPairs = new ArrayList<>();
     List<MutablePair<ICommandSender, EditTask>> deferredPlayerTaskPairs = new ArrayList<>();
+
+    List<MutablePair<ICommandSender, EditTask>> activeUndoPlayerTaskPairs = new ArrayList<>();
+    List<MutablePair<ICommandSender, EditTask>> deferredUndoPlayerTaskPairs = new ArrayList<>();
 
     private List<FreezableBox> srcFreezeBoxes = new ArrayList<>();
     private List<FreezableBox> dstFreezeBoxes = new ArrayList<>();
 
-    IFreezableWorld.ManipulateStage manipulateStage = ManipulateStage.NONE;
+    IFreezableWorld.ManipulateStage manipulateStage = ManipulateStage.READY;
 
     private boolean isSrcFrozen = false;
     private boolean isDstFrozen = false;
@@ -56,10 +63,36 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     private static final Vector3i CC_REGION_SIZE = new Vector3i(16, 16, 16);
 
     @Override
+    public void requestTasksExecute() {
+        tasksExecuteRequested = true;
+    }
+
+    @Override
+    public void requestUndoTasksExecute() {
+        undoTasksExecuteRequested = true;
+    }
+
+    @Override
+    public boolean isTasksExecuteRequested() {
+        return tasksExecuteRequested;
+    }
+
+    @Override
+    public boolean isUndoTasksExecuteRequested() {
+        return undoTasksExecuteRequested;
+    }
+
+    @Override
     public void convertCommand() {
+        tasksExecuteRequested = false;
         manipulateStage = ManipulateStage.STARTED;
 
         addDeferredTasks();
+        activePlayerTaskPairs.forEach(pair -> {
+            if (pair.getKey() instanceof EntityPlayer)
+                MAWM.INSTANCE.playerDidTask((EntityPlayer) pair.getKey(), pair.getValue());
+        });
+
         this.addFreezeRegionsForTasks();
 
         isDstSavingLocked = true;
@@ -69,6 +102,23 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         isSrcSaveAddingLocked = true;
         manipulateStage = ManipulateStage.WAITING_SRC_SAVE;
         //Continued in worldTick event on WAITING_SRC_SAVE
+    }
+    @Override
+    public void undoConvertCommand() {
+        undoTasksExecuteRequested = false;
+        manipulateStage = ManipulateStage.STARTED;
+
+        addDeferredUndoTasks();
+
+        this.addFreezeRegionsForTasks();
+
+        isDstSavingLocked = true;
+        isDstSaveAddingLocked = true;
+
+        ((IFreezableCubeProviderServer) chunkProvider).addSrcCubesToSave();
+        isSrcSaveAddingLocked = true;
+        manipulateStage = ManipulateStage.WAITING_SRC_SAVE_UNDO;
+        //Continued in worldTick event on WAITING_SRC_SAVE_UNDO
     }
 
     @Override
@@ -80,9 +130,6 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         context.setSrcWorld(srcWorld);
         context.setDstWorld(dstWorld);
-        context.setConverterName("Relocating");
-        context.setInFormat("CubicChunks");
-        context.setOutFormat("CubicChunks");
 
         List<EditTask> tasks = new ArrayList<>();
         activePlayerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
@@ -93,7 +140,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             manipulateStage = ManipulateStage.CONVERT_FINISHED;
             double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
 
-            int playerCount = new HashSet(Arrays.asList(activePlayerTaskPairs.toArray())).size();
+            int playerCount = new HashSet<>(Arrays.asList(activePlayerTaskPairs.toArray())).size();
 
             int cubeCount = 0;
             for (MutablePair<ICommandSender, EditTask> playerTaskPair : activePlayerTaskPairs) {
@@ -105,19 +152,53 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
             double cubesPerSecond = cubeCount / conversionTime;
             double blocksPerSecond = (cubeCount * (16 * 16 * 16)) / conversionTime;
-            activePlayerTaskPairs.forEach(pair -> {
+            activePlayerTaskPairs.forEach(pair ->
                 pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
                     "mawm.execute.completed.stats",
                     activePlayerTaskPairs.size(),
                     playerCount,
                     Math.floor(cubesPerSecond),
                     Math.floor(blocksPerSecond)
-                ));
-            });
+                ))
+            );
         }, (throwable -> activePlayerTaskPairs.forEach(pair -> {
-            pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
-                "mawm.execute.error.converter_error"
-            ));
+            pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(), "mawm.execute.error.converter_error"));
+            MAWM.LOGGER.fatal("Unrecoverable converter error!", throwable);
+        })));
+    }
+
+    @Override
+    public void startUndoConverter() {
+        DualSourceCommandContext context = new DualSourceCommandContext();
+
+        Path srcWorld = saveHandler.getWorldDirectory().toPath();
+
+        context.setFallbackWorld(srcWorld);
+        context.setPriorityWorld(srcWorld);
+        context.setDstWorld(srcWorld);
+
+        List<EditTask> tasks = new ArrayList<>();
+        activeUndoPlayerTaskPairs.forEach(pair -> tasks.add(pair.getValue()));
+
+        long startTime = System.nanoTime();
+
+        MAWMConverter.convertUndo(context, tasks, () -> {
+            manipulateStage = ManipulateStage.CONVERT_FINISHED;
+            double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
+
+            int playerCount = new HashSet<>(Arrays.asList(activePlayerTaskPairs.toArray())).size();
+
+            activeUndoPlayerTaskPairs.forEach(pair ->
+                pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
+                    "mawm.undo.completed.stats",
+                    activeUndoPlayerTaskPairs.size(),
+                    playerCount,
+                    conversionTime
+                ))
+            );
+
+        }, (throwable -> activeUndoPlayerTaskPairs.forEach(pair -> {
+            pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(), "mawm.undo.error.converter_error"));
             MAWM.LOGGER.fatal("Unrecoverable converter error!", throwable);
         })));
     }
@@ -125,25 +206,27 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     @Override
     public void swapModifiedRegionFilesForTasks() {
         File saveLoc = saveHandler.getWorldDirectory();
-        String workingLocAbsolutePath = Paths.get(saveLoc.getParent() + "/mawmWorkingWorld").toFile().getAbsolutePath();
-        String saveLocAbsolutePath = saveLoc.getAbsolutePath();
+        File workingLoc = Paths.get(saveLoc.getParent() + "/mawmWorkingWorld").toFile();
 
-        Path backupLoc = Paths.get(saveLocAbsolutePath + "/region3d.bak/");
-        if (!Files.exists(backupLoc)) {
+        String worldDirName = saveLoc.getName();
+
+        Path backupRegionDir = Paths.get(saveLoc.getParent() + worldDirName + "/region3d/");
+
+        if (!Files.exists(backupRegionDir)) {
             try {
-                Files.createDirectories(backupLoc);
+                Files.createDirectories(backupRegionDir);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
         activePlayerTaskPairs.forEach(task -> getRegionFilesModifiedByTask(task.getValue()).forEach((vec) -> {
-            Path workingLocPath = Paths.get(workingLocAbsolutePath + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            Path workingLocPath = Paths.get(workingLoc + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
             if(!Files.exists(workingLocPath))
                 return;
 
-            Path dstVecPath = Paths.get(saveLocAbsolutePath + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
-            Path bakVecPath = Paths.get(saveLocAbsolutePath + "/region3d.bak/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            Path dstVecPath = Paths.get(saveLoc + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            Path bakVecPath = Paths.get(backupRegionDir.toString() + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
 
             try {
                 Files.delete(bakVecPath);
@@ -262,16 +345,22 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         activePlayerTaskPairs.addAll(deferredPlayerTaskPairs);
         deferredPlayerTaskPairs.clear();
     }
-
     @Override
-    public List<MutablePair<ICommandSender, EditTask>> getTasks() {
-        return activePlayerTaskPairs;
+    public void addDeferredUndoTasks() {
+        activeUndoPlayerTaskPairs.clear();
+        activeUndoPlayerTaskPairs.addAll(deferredUndoPlayerTaskPairs);
+        deferredUndoPlayerTaskPairs.clear();
     }
+
     @Override
     public void addTask(ICommandSender sender, EditTask task) {
         deferredPlayerTaskPairs.add(new MutablePair<>(sender, task));
     }
 
+    @Override
+    public void addUndoTask(ICommandSender sender, List<EditTask> undoTasks) {
+        undoTasks.forEach(task -> deferredUndoPlayerTaskPairs.add(new MutablePair<>(sender, task)));
+    }
     @Override
     public ManipulateStage getManipulateStage() {
         return this.manipulateStage;

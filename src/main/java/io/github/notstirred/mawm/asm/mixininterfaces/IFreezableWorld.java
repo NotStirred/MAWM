@@ -14,21 +14,31 @@ import net.minecraft.world.chunk.Chunk;
 import java.util.List;
 
 public interface IFreezableWorld {
-    enum ManipulateStage { NONE, STARTED, WAITING_SRC_SAVE, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
+    enum ManipulateStage { READY, STARTED, WAITING_SRC_SAVE, WAITING_SRC_SAVE_UNDO, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
+
+    void requestTasksExecute();
+    void requestUndoTasksExecute();
+
+    boolean isTasksExecuteRequested();
+    boolean isUndoTasksExecuteRequested();
 
     void convertCommand();
+    void undoConvertCommand();
 
     void startConverter();
+    void startUndoConverter();
 
     void swapModifiedRegionFilesForTasks();
 
     void addFreezeRegionsForTasks();
 
-    List<MutablePair<ICommandSender, EditTask>> getTasks();
     void addTask(ICommandSender sender, EditTask task);
+    void addUndoTask(ICommandSender sender, List<EditTask> undoTasks);
 
     List<MutablePair<ICommandSender, EditTask>> getDeferredTasks();
     void addDeferredTasks();
+
+    void addDeferredUndoTasks();
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);

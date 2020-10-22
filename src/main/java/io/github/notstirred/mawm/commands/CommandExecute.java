@@ -1,5 +1,6 @@
 package io.github.notstirred.mawm.commands;
 
+import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -19,9 +20,10 @@ public class CommandExecute extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        if(((IFreezableWorld) sender.getEntityWorld()).getTasks().size() == 0)
-            throw new CommandException("mawm.command.execute.no_tasks");
-        if(((IFreezableWorld) sender.getEntityWorld()).getManipulateStage() == IFreezableWorld.ManipulateStage.NONE)
-            ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
+        if(MAWM.isQueueMode) {
+            if (((IFreezableWorld) sender.getEntityWorld()).getDeferredTasks().size() == 0)
+                throw new CommandException("mawm.command.execute.no_tasks");
+            ((IFreezableWorld) sender.getEntityWorld()).requestTasksExecute();
+        }
     }
 }
