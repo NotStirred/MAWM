@@ -16,6 +16,4 @@ import javax.annotation.Nonnull;
 public interface AccessPlayerCubeMap {
     @Invoker CubeWatcher invokeGetOrCreateCubeWatcher(@Nonnull CubePos cubePos);
     @Invoker ColumnWatcher invokeGetOrCreateColumnWatcher(ChunkPos chunkPos);
-
-    @Accessor VanillaNetworkHandler getVanillaNetworkHandler();
 }
