@@ -62,7 +62,8 @@ custom reader to allow for piping nbt data straight to it on save with a higher 
 @Mod(
         modid = MAWM.MOD_ID,
         name = MAWM.MOD_NAME,
-        version = MAWM.VERSION
+        version = MAWM.VERSION,
+        acceptableRemoteVersions = "*"
 )
 @Mod.EventBusSubscriber(modid = MAWM.MOD_ID)
 public class MAWM {

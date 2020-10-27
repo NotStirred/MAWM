@@ -1,7 +1,8 @@
 {
+  "required": true,
   "package": "io.github.notstirred.mawm.asm.mixin.core",
   "refmap": "mixins.mawm.refmap.json",
-  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "cubicchunks.MixinCube",

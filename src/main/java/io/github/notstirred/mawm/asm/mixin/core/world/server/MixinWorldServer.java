@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -137,44 +138,48 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         long startTime = System.nanoTime();
 
         MAWMConverter.convert(context, tasks, () -> {
-            manipulateStage = ManipulateStage.CONVERT_FINISHED;
-            double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
+                manipulateStage = ManipulateStage.CONVERT_FINISHED;
+                double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
 
-            int playerCount = new HashSet<>(Arrays.asList(activePlayerTaskPairs.toArray())).size();
+                int playerCount = new HashSet<>(Arrays.asList(activePlayerTaskPairs.toArray())).size();
 
-            int cubeCount = 0;
-            for (MutablePair<ICommandSender, EditTask> playerTaskPair : activePlayerTaskPairs) {
-                BoundingBox sourceBox = playerTaskPair.getValue().getSourceBox();
-                Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
-                cubeCount += taskDimensions.getX() * taskDimensions.getY() * taskDimensions.getZ();
-                //TODO: add per-task-type cube counting
-            }
+                int cubeCount = 0;
+                for (MutablePair<ICommandSender, EditTask> playerTaskPair : activePlayerTaskPairs) {
+                    BoundingBox sourceBox = playerTaskPair.getValue().getSourceBox();
+                    Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
+                    cubeCount += taskDimensions.getX() * taskDimensions.getY() * taskDimensions.getZ();
+                    //TODO: add per-task-type cube counting
+                }
 
-            double cubesPerSecond = cubeCount / conversionTime;
-            double blocksPerSecond = (cubeCount * (16 * 16 * 16)) / conversionTime;
-            activePlayerTaskPairs.forEach(pair ->
-                pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
-                    "mawm.execute.completed.stats",
-                    activePlayerTaskPairs.size(),
-                    playerCount,
-                    Math.floor(cubesPerSecond),
-                    Math.floor(blocksPerSecond)
-                ))
-            );
-        }, (throwable -> activePlayerTaskPairs.forEach(pair -> {
-            pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(), "mawm.execute.error.converter_error"));
-            MAWM.LOGGER.fatal("Unrecoverable converter error!", throwable);
-        })));
+                double cubesPerSecond = cubeCount / conversionTime;
+                double blocksPerSecond = (cubeCount * (16 * 16 * 16)) / conversionTime;
+                activePlayerTaskPairs.forEach(pair ->
+                    pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(),
+                        "mawm.execute.completed.stats",
+                        activePlayerTaskPairs.size(),
+                        playerCount,
+                        Math.floor(cubesPerSecond),
+                        Math.floor(blocksPerSecond)
+                    ))
+                );
+            },
+            throwable -> activePlayerTaskPairs.forEach(pair -> {
+                pair.getKey().sendMessage(TextComponentHelper.createComponentTranslation(pair.getKey(), "mawm.execute.error.converter_error"));
+                MAWM.LOGGER.fatal("Unrecoverable converter error!", throwable);
+            })
+        );
     }
 
     @Override
     public void startUndoConverter() {
         DualSourceCommandContext context = new DualSourceCommandContext();
 
-        Path srcWorld = saveHandler.getWorldDirectory().toPath();
+        Path srcWorld = Paths.get(saveHandler.getWorldDirectory().getAbsolutePath());
+        String worldName = saveHandler.getWorldDirectory().getName();
+        Path backupWorldDir = Paths.get(srcWorld.getParent() + "/" + worldName + ".bak");
 
         context.setFallbackWorld(srcWorld);
-        context.setPriorityWorld(srcWorld);
+        context.setPriorityWorld(backupWorldDir);
         context.setDstWorld(srcWorld);
 
         List<EditTask> tasks = new ArrayList<>();
@@ -210,11 +215,11 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         String worldDirName = saveLoc.getName();
 
-        Path backupRegionDir = Paths.get(saveLoc.getParent() + worldDirName + "/region3d/");
+        Path backupLoc = Paths.get(saveLoc.getParent() + "/" +  worldDirName + ".bak");
 
-        if (!Files.exists(backupRegionDir)) {
+        if (!Files.exists(backupLoc)) {
             try {
-                Files.createDirectories(backupRegionDir);
+                Files.createDirectories(backupLoc);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -225,8 +230,13 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             if(!Files.exists(workingLocPath))
                 return;
 
+            String backRegionDir = backupLoc + "/region3d/";
+            File f = new File(backRegionDir);
+            f.mkdir();
+
             Path dstVecPath = Paths.get(saveLoc + "/region3d/" + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
-            Path bakVecPath = Paths.get(backupRegionDir.toString() + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+            Path bakVecPath = Paths.get(backRegionDir + vec.getX() + "." + vec.getY() + "." + vec.getZ() + ".3dr");
+
 
             try {
                 Files.delete(bakVecPath);
@@ -239,13 +249,13 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
                 MAWM.LOGGER.debug("Moved world region file into backup loc");
 
                 try {
-                    Files.move(workingLocPath, dstVecPath);
+                    Files.move(workingLocPath, dstVecPath, StandardCopyOption.REPLACE_EXISTING);
                     MAWM.LOGGER.debug("Moved output region into world loc");
                 } catch (IOException e) {
-                    MAWM.LOGGER.debug("No region file exists at " + workingLocPath + ", assuming converter had empty region at that location, skipping.");
+                    MAWM.LOGGER.debug("No region file exists at " + workingLocPath + ", assuming converter had empty region at that location, skipping." + e.getMessage());
                 }
             } catch (IOException e) {
-                MAWM.LOGGER.error("Cancelling command execution! Couldn't find existing region file to move to backups at " + dstVecPath);
+                MAWM.LOGGER.error("Cancelling command execution! Couldn't find existing region file to move to backups at " + dstVecPath + ". " + e.getMessage());
                 e.printStackTrace();
                 task.getKey().sendMessage(TextComponentHelper.createComponentTranslation(task.getKey(),
                     "mawm.execute.error.missing_existing_region",
