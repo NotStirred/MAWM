@@ -5,6 +5,7 @@ import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeWat
 import io.github.notstirred.mawm.asm.mixin.core.server.AccessPlayerChunkMapEntry;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessPlayerCubeMap;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.util.ticket.AccessTicketList;
+import io.github.notstirred.mawm.asm.mixininterfaces.IColumnWatcher;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
@@ -309,7 +310,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
     public void unfreezeReloadBarrier(PlayerCubeMap map, Map<Cube, ObjectArrayList<EntityPlayerMP>> cubePlayerMap, Map<IColumn, List<EntityPlayerMP>> columnPlayerMap) {
         columnPlayerMap.forEach((col, players) -> {
             ColumnWatcher columnWatcher = ((AccessPlayerCubeMap) map).invokeGetOrCreateColumnWatcher(new ChunkPos(col.getX(), col.getZ()));
-            players.forEach(columnWatcher::addPlayer);
+            players.forEach(((IColumnWatcher)columnWatcher)::addPlayerNoChunkUnload);
+
         });
 
         cubePlayerMap.forEach((cube, players) -> {
@@ -348,7 +350,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             if (columnWatcher != null) {
                 List<EntityPlayerMP> players = new ArrayList<>(((AccessPlayerChunkMapEntry) columnWatcher).getPlayerList());
                 columnPlayerMap.put((IColumn) chunk, players);
-                players.forEach(columnWatcher::removePlayer);
+                players.forEach(((IColumnWatcher)columnWatcher)::removePlayerNoChunkUnload);
             }
             chunk.onUnload();
             iterator.remove();

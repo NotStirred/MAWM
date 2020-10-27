@@ -9,10 +9,11 @@
     "cubicchunks.MixinCubeProviderServer",
     "cubicchunks.server.AccessCubeProviderServer",
     "cubicchunks.server.AccessCubeWatcher",
-    "server.AccessPlayerChunkMapEntry",
     "cubicchunks.server.AccessPlayerCubeMap",
+    "cubicchunks.server.MixinColumnWatcher",
     "cubicchunks.server.io.MixinRegionCubeIO",
     "cubicchunks.util.ticket.AccessTicketList",
+    "server.AccessPlayerChunkMapEntry",
     "world.server.MixinWorldServer"
   ]
 }
