@@ -33,7 +33,7 @@ public class CubeWandHandler {
 
     @SubscribeEvent
     public static void leftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
-        if (event.isCanceled() || !event.getWorld().isRemote)
+        if (event.isCanceled() || event.getWorld().isRemote)
             return;
 
         if (event.getEntityPlayer().getHeldItem(event.getHand()).getItem() == Items.GOLDEN_AXE) {
@@ -53,7 +53,7 @@ public class CubeWandHandler {
 
     @SubscribeEvent
     public static void rightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.isCanceled() || !event.getWorld().isRemote)
+        if (event.isCanceled() || event.getWorld().isRemote)
             return;
 
         if (event.getEntityPlayer().getHeldItem(event.getHand()).getItem() == Items.GOLDEN_AXE) {
