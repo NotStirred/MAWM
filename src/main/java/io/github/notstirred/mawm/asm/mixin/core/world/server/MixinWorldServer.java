@@ -94,7 +94,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
                 MAWM.INSTANCE.playerDidTask((EntityPlayer) pair.getKey(), pair.getValue());
         });
 
-        this.addFreezeRegionsForTasks();
+        this.addFreezeRegionsForTasks(activePlayerTaskPairs);
 
         isDstSavingLocked = true;
         isDstSaveAddingLocked = true;
@@ -111,7 +111,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         addDeferredUndoTasks();
 
-        this.addFreezeRegionsForTasks();
+        this.addFreezeRegionsForTasks(activeUndoPlayerTaskPairs);
 
         isDstSavingLocked = true;
         isDstSaveAddingLocked = true;
@@ -312,10 +312,10 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     }
 
     @Override
-    public void addFreezeRegionsForTasks() {
+    public void addFreezeRegionsForTasks(List<MutablePair<ICommandSender, EditTask>> tasks) {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
         //TODO: SET & REPLACE don't need a SrcFreezeBox
-        activePlayerTaskPairs.forEach(pair -> {
+        tasks.forEach(pair -> {
             EditTask task = pair.getValue();
             addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
             if(task.getOffset() != null) {

@@ -30,7 +30,7 @@ public interface IFreezableWorld {
 
     void swapModifiedRegionFilesForTasks();
 
-    void addFreezeRegionsForTasks();
+    void addFreezeRegionsForTasks(List<MutablePair<ICommandSender, EditTask>> tasks);
 
     void addTask(ICommandSender sender, EditTask task);
     void addUndoTask(ICommandSender sender, List<EditTask> undoTasks);
