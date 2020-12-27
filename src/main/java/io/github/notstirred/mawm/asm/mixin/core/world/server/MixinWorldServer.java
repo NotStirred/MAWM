@@ -147,7 +147,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
                 for (MutablePair<ICommandSender, EditTask> playerTaskPair : activePlayerTaskPairs) {
                     BoundingBox sourceBox = playerTaskPair.getValue().getSourceBox();
                     Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
-                    cubeCount += taskDimensions.getX() * taskDimensions.getY() * taskDimensions.getZ();
+                    cubeCount += (taskDimensions.getX()+1) * (taskDimensions.getY()+1) * (taskDimensions.getZ()+1);
                     //TODO: add per-task-type cube counting
                 }
 
@@ -158,6 +158,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
                         "mawm.execute.completed.stats",
                         activePlayerTaskPairs.size(),
                         playerCount,
+                        conversionTime,
                         Math.floor(cubesPerSecond),
                         Math.floor(blocksPerSecond)
                     ))
