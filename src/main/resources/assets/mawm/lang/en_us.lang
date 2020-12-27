@@ -4,6 +4,7 @@ mawm.execute.completed.stats=%d tasks completed for %d players in %d seconds - (
 mawm.undo.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
 mawm.undo.completed.stats=%d tasks completed for %d players in %d seconds
 mawm.command.undo.usage=undo usage
+mawm.command.undo.none=Nothing left to undo!
 
 mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! (%s, %s, %s), (%s, %s, %s)
 mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! %s
@@ -33,4 +34,4 @@ mawm.command.moveregen.no_args=Movement vector not supplied! Please say where to
 mawm.command.set.usage=set usage
 mawm.command.set.no_args=Missing block argument for set command!
 mawm.command.replace.usage=replace usage
-mawm.command.replace.no_args=Missing block arguments for set command!
+mawm.command.replace.no_args=Missing block arguments for replace command!

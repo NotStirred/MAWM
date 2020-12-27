@@ -1,15 +1,11 @@
 package io.github.notstirred.mawm.commands.editing;
 
-import cubicchunks.converter.lib.util.BlockEditTask;
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
-import io.github.notstirred.mawm.input.CubeWandHandler;
-import io.github.notstirred.mawm.util.MutablePair;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
+import io.github.notstirred.mawm.util.LimitedFifoQueue;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -36,7 +32,13 @@ public class CommandUndo extends CommandBase {
         if (sender.getCommandSenderEntity() instanceof EntityPlayer) {
             EntityPlayer player = (EntityPlayer) sender.getCommandSenderEntity();
 
-            ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(MAWM.INSTANCE.getPlayerTaskHistory().get(player.getUniqueID()).pop()));
+            LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().get(player.getUniqueID());
+            if(tasksForPlayer.hasPrev()) {
+                ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(tasksForPlayer.getPrev()));
+            } else {
+                sender.sendMessage(new TextComponentTranslation("mawm.command.undo.none"));
+                return;
+            }
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
@@ -47,32 +49,33 @@ public class CommandUndo extends CommandBase {
 
     private static List<EditTask> getInverseForTask(EditTask task) {
         List<EditTask> tasks = new ArrayList<>();
+        BoundingBox sourceBox = task.getSourceBox();
         switch (task.getType()) {
             case COPY:
-                tasks.add(new EditTask(task.getSourceBox().add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox.add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case CUT:
-                tasks.add(new EditTask(task.getSourceBox(), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox, new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 if(task.getOffset() != null)
-                    tasks.add(new EditTask(task.getSourceBox().add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                    tasks.add(new EditTask(sourceBox.add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case MOVE:
-                tasks.add(new EditTask(task.getSourceBox(), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
-                tasks.add(new EditTask(task.getSourceBox().add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox, new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox.add(task.getOffset()), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case REMOVE:
-                tasks.add(new EditTask(task.getSourceBox(), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox, new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case SET:
-                tasks.add(new EditTask(task.getSourceBox(), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox, new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case REPLACE:
-                tasks.add(new EditTask(task.getSourceBox(), new Vector3i(0, 0, 0), EditTask.Type.MOVE));
+                tasks.add(new EditTask(sourceBox, new Vector3i(0, 0, 0), EditTask.Type.MOVE));
                 break;
 
             case KEEP:

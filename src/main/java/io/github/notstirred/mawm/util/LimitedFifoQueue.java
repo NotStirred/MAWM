@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LimitedFifoQueue<T> {
-
+    private int tail = 0;
     private int head;
+    private int maxHead;
 
     private final int limit;
     private final List<T> list;
@@ -18,32 +19,51 @@ public class LimitedFifoQueue<T> {
         list = _list;
         limit = _limit;
         head = list.size();
+        maxHead = head;
     }
 
     public void push(T val) {
         list.add(head, val);
         incrementHead();
+        tail = Math.max(0, head - limit);
     }
 
-    public T pop() {
+
+    public boolean hasPrev() {
+        return head > tail;
+    }
+    public boolean hasNext() {
+        return maxHead > head;
+    }
+
+    public T getPrev() {
+        if(!hasPrev())
+            throw new ArrayIndexOutOfBoundsException("Head moved before tail!");
         decrementHead();
         return list.get(head);
     }
-    public T peek() {
+
+    public T getNext() {
+        if(hasNext())
+            incrementHead();
+        else
+            throw new ArrayIndexOutOfBoundsException("No value at index head");
         return list.get(head);
     }
 
     public void clear() {
         list.clear();
         head = 0;
+        maxHead = 0;
+        tail = 0;
     }
     private void incrementHead() {
         head++;
         head %= limit;
+        maxHead = head;
     }
 
     private void decrementHead() {
-        if(head > 0)
-            head--;
+        head--;
     }
 }
