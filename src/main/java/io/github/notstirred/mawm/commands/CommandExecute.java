@@ -21,7 +21,7 @@ public class CommandExecute extends CommandBase {
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         if(MAWM.isQueueMode) {
-            if (((IFreezableWorld) sender.getEntityWorld()).getDeferredTasks().size() == 0)
+            if (!((IFreezableWorld) sender.getEntityWorld()).hasDeferredTasks())
                 throw new CommandException("mawm.command.execute.no_tasks");
             ((IFreezableWorld) sender.getEntityWorld()).requestTasksExecute();
         }

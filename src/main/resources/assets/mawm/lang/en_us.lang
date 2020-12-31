@@ -5,6 +5,10 @@ mawm.undo.error.converter_error=An unexpected error occured! It has been logged 
 mawm.undo.completed.stats=%d tasks completed for %d players in %d seconds
 mawm.command.undo.usage=undo usage
 mawm.command.undo.none=Nothing left to undo!
+mawm.command.undo.completed_all=%d steps undone!
+mawm.command.undo.completed_i=Step %d undone!
+mawm.command.undo.invalid_steps=Invalid number of undo steps
+mawm.command.redo.none=Nothing left to redo!
 
 mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! (%s, %s, %s), (%s, %s, %s)
 mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! %s

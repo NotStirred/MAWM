@@ -57,8 +57,6 @@ allow dst cubes & cols being saved
 custom reader to allow for piping nbt data straight to it on save with a higher priority than the one read from disk
  */
 
-//TODO: configurable number of undos
-//    - perhaps doable through having region files named in a queue, such as 0.0.0.3dr.bak1, with higher number being more recent
 @Mod(
         modid = MAWM.MOD_ID,
         name = MAWM.MOD_NAME,
@@ -102,6 +100,8 @@ public class MAWM {
                 world.convertCommand();
             else if(world.isUndoTasksExecuteRequested())
                 world.undoConvertCommand();
+            else if(world.isRedoTasksExecuteRequested())
+                world.redoConvertCommand();
         }
         if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE) {
             IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
@@ -127,7 +127,7 @@ public class MAWM {
                     SharedCachedRegionProvider.clearRegions();
                     LOGGER.debug("REGIONS CLEARED");
                     world.setSrcFrozen(true);
-                    world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
+                    world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING_UNDO);
                     world.startUndoConverter();
                 } catch (Exception e) {
                     LOGGER.fatal(e);
@@ -135,8 +135,24 @@ public class MAWM {
             } else {
                 LOGGER.debug("waiting for affected cubes & columns to be saved");
             }
+        } else if(((IFreezableWorld)event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE_REDO) {
+            IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
+            if (!regionCubeIO.hasFrozenSrcColumnsToBeSaved() && !regionCubeIO.hasFrozenSrcCubesToBeSaved()) {
+                try {
+                    world.setSrcSavingLocked(true);
+                    SharedCachedRegionProvider.clearRegions();
+                    LOGGER.debug("REGIONS CLEARED");
+                    world.setSrcFrozen(true);
+                    world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING_REDO);
+                    world.startRedoConverter();
+                } catch (Exception e) {
+                    LOGGER.fatal(e);
+                }
+            } else {
+                LOGGER.debug("waiting for affected cubes & columns to be saved");
+            }
         }
-        if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED) {
+        if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED || world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_UNDO_FINISHED || world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_REDO_FINISHED) {
             world.setSrcFrozen(false);
             world.setDstFrozen(true);
             try {
@@ -145,7 +161,10 @@ public class MAWM {
                 LOGGER.fatal(e);
             }
 
-            ((IFreezableWorld)event.world).swapModifiedRegionFilesForTasks();
+            if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED) {
+                ((IFreezableWorld) event.world).swapModifiedRegionFilesForTasks();
+            }
+
             LOGGER.debug("Region files copied");
             world.setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
 
@@ -155,8 +174,12 @@ public class MAWM {
             world.setDstSaveAddingLocked(false);
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
-            if(world.getDeferredTasks().size() != 0) //If there were any deferred tasks, execute them.
+            if(world.hasDeferredTasks()) //If there were any deferred tasks, execute them.
                 world.convertCommand();
+            else if(world.hasDeferredUndoTasks())
+                world.undoConvertCommand();
+            else if(world.hasDeferredRedoTasks())
+                world.redoConvertCommand();
             else
                 world.setManipulateStage(IFreezableWorld.ManipulateStage.READY);
         }

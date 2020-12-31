@@ -12,8 +12,10 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraftforge.server.command.TextComponentHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class CommandUndo extends CommandBase {
@@ -32,9 +34,40 @@ public class CommandUndo extends CommandBase {
         if (sender.getCommandSenderEntity() instanceof EntityPlayer) {
             EntityPlayer player = (EntityPlayer) sender.getCommandSenderEntity();
 
-            LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().get(player.getUniqueID());
+            LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().computeIfAbsent(player.getUniqueID(), (uuid) -> new LimitedFifoQueue<>(10));
             if(tasksForPlayer.hasPrev()) {
-                ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(tasksForPlayer.getPrev()));
+                if(args.length == 0)
+                    ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(tasksForPlayer.getPrev()));
+                else {
+                    try {
+                        int numSteps = Integer.parseInt(args[0]);
+                        if(args.length >= 2) {
+                            if(args[1].equalsIgnoreCase("true")) {
+                                for (int i = 0; i < numSteps; i++) {
+                                    if(!tasksForPlayer.hasPrev())
+                                        break;
+                                    ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(tasksForPlayer.getPrev()));
+                                }
+                                sender.sendMessage(new TextComponentTranslation("mawm.command.undo.completed_all", numSteps));
+                            }
+                            return;
+                        }
+                        for (int i = 0; i < numSteps; i++) {
+                            if(!tasksForPlayer.hasPrev()) {
+                                sender.sendMessage(new TextComponentTranslation("mawm.command.undo.none"));
+                                break;
+                            }
+                            ((IFreezableWorld) sender.getEntityWorld()).addUndoTask(sender, getInverseForTask(tasksForPlayer.getPrev()));
+                            ((IFreezableWorld) sender.getEntityWorld()).requestUndoTasksExecute();
+                            sender.sendMessage(new TextComponentTranslation("mawm.command.undo.completed_i", i));
+                        }
+                        return;
+
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(new TextComponentTranslation("mawm.command.undo.invalid_steps"));
+                        return;
+                    }
+                }
             } else {
                 sender.sendMessage(new TextComponentTranslation("mawm.command.undo.none"));
                 return;
@@ -47,7 +80,7 @@ public class CommandUndo extends CommandBase {
         }
     }
 
-    private static List<EditTask> getInverseForTask(EditTask task) {
+    public static List<EditTask> getInverseForTask(EditTask task) {
         List<EditTask> tasks = new ArrayList<>();
         BoundingBox sourceBox = task.getSourceBox();
         switch (task.getType()) {

@@ -12,33 +12,45 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IFreezableWorld {
-    enum ManipulateStage { READY, STARTED, WAITING_SRC_SAVE, WAITING_SRC_SAVE_UNDO, CONVERTING, CONVERT_FINISHED, REGION_SWAP_FINISHED, RELOADING_CUBES;}
+
+
+    enum ManipulateStage { READY, STARTED,
+        WAITING_SRC_SAVE,   WAITING_SRC_SAVE_UNDO,  WAITING_SRC_SAVE_REDO,
+        CONVERTING,         CONVERTING_UNDO,        CONVERTING_REDO,
+        CONVERT_FINISHED,   CONVERT_UNDO_FINISHED,  CONVERT_REDO_FINISHED,
+        REGION_SWAP_FINISHED, RELOADING_CUBES
+    }
 
     void requestTasksExecute();
     void requestUndoTasksExecute();
+    void requestRedoTasksExecute();
 
     boolean isTasksExecuteRequested();
     boolean isUndoTasksExecuteRequested();
+    boolean isRedoTasksExecuteRequested();
 
     void convertCommand();
     void undoConvertCommand();
+    void redoConvertCommand();
 
     void startConverter();
     void startUndoConverter();
+    void startRedoConverter();
 
     void swapModifiedRegionFilesForTasks();
 
-    void addFreezeRegionsForTasks(List<MutablePair<ICommandSender, EditTask>> tasks);
+    void addFreezeRegionsForTasks(Map.Entry<ICommandSender, List<EditTask>> tasks);
 
     void addTask(ICommandSender sender, EditTask task);
     void addUndoTask(ICommandSender sender, List<EditTask> undoTasks);
+    void addRedoTask(ICommandSender sender, List<EditTask> redoTasks);
 
-    List<MutablePair<ICommandSender, EditTask>> getDeferredTasks();
-    void addDeferredTasks();
-
-    void addDeferredUndoTasks();
+    boolean hasDeferredTasks();
+    boolean hasDeferredUndoTasks();
+    boolean hasDeferredRedoTasks();
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);

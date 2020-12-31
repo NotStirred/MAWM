@@ -25,15 +25,19 @@ public class LimitedFifoQueue<T> {
     public void push(T val) {
         list.add(head, val);
         incrementHead();
-        tail = Math.max(0, head - limit);
+        maxHead = head;
+        tail = Math.max(0, maxHead-limit);
     }
 
+    public int getHead() {
+        return head;
+    }
 
     public boolean hasPrev() {
         return head > tail;
     }
-    public boolean hasNext() {
-        return maxHead > head;
+    public boolean hasNext() { //Because maxHead can never be lower than head, and can wrap round to 0, this is the only case where there is no next
+        return maxHead != head;
     }
 
     public T getPrev() {
@@ -44,11 +48,12 @@ public class LimitedFifoQueue<T> {
     }
 
     public T getNext() {
+        T val = list.get(head);
         if(hasNext())
             incrementHead();
         else
             throw new ArrayIndexOutOfBoundsException("No value at index head");
-        return list.get(head);
+        return val;
     }
 
     public void clear() {
@@ -60,7 +65,6 @@ public class LimitedFifoQueue<T> {
     private void incrementHead() {
         head++;
         head %= limit;
-        maxHead = head;
     }
 
     private void decrementHead() {
