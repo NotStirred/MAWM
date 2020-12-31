@@ -31,7 +31,38 @@ public class CommandRedo extends CommandBase {
 
             LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().computeIfAbsent(player.getUniqueID(), (uuid) -> new LimitedFifoQueue<>(10));
             if(tasksForPlayer.hasNext()) {
-                ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                if(args.length == 0)
+                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                else {
+                    try {
+                        int numSteps = Integer.parseInt(args[0]);
+                        if(args.length >= 2) {
+                            if(args[1].equalsIgnoreCase("true")) {
+                                for (int i = 0; i < numSteps; i++) {
+                                    if(!tasksForPlayer.hasNext())
+                                        break;
+                                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                                }
+                                sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_all", numSteps));
+                            }
+                            return;
+                        }
+                        for (int i = 0; i < numSteps; i++) {
+                            if(!tasksForPlayer.hasNext()) {
+                                sender.sendMessage(new TextComponentTranslation("mawm.command.redo.none"));
+                                break;
+                            }
+                            ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                            ((IFreezableWorld) sender.getEntityWorld()).requestRedoTasksExecute();
+                            sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_i", i));
+                        }
+                        return;
+
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(new TextComponentTranslation("mawm.command.redo.invalid_steps"));
+                        return;
+                    }
+                }
             } else {
                 sender.sendMessage(new TextComponentTranslation("mawm.command.redo.none"));
                 return;

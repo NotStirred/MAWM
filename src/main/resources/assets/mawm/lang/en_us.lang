@@ -9,6 +9,9 @@ mawm.command.undo.completed_all=%d steps undone!
 mawm.command.undo.completed_i=Step %d undone!
 mawm.command.undo.invalid_steps=Invalid number of undo steps
 mawm.command.redo.none=Nothing left to redo!
+mawm.command.redo.completed_all=%d steps redone!
+mawm.command.redo.completed_i=Step %d redone!
+mawm.command.redo.invalid_steps=Invalid number of redo steps
 
 mawm.command.debug.freezebox.invalidboundingbox=Invalid Bounding Box! (%s, %s, %s), (%s, %s, %s)
 mawm.command.debug.freezebox.invalidfreezetype=Invalid Freeze Type! %s
