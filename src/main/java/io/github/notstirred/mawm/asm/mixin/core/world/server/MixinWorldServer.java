@@ -238,7 +238,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         context.setPriorityWorld(backupWorldDir);
         context.setDstWorld(srcWorld);
 
-        List<EditTask> tasks = new ArrayList<>(activeUndoPlayerTasks.getValue());
+        List<EditTask> tasks = new ArrayList<>(activeRedoPlayerTasks.getValue());
 
         long startTime = System.nanoTime();
 
