@@ -42,8 +42,6 @@ public interface IFreezableWorld {
 
     void swapModifiedRegionFilesForTasks();
 
-    void addFreezeRegionsForTasks(Map.Entry<ICommandSender, List<EditTask>> tasks);
-
     void addTask(ICommandSender sender, EditTask task);
     void addUndoTask(ICommandSender sender, List<EditTask> undoTasks);
     void addRedoTask(ICommandSender sender, List<EditTask> redoTasks);

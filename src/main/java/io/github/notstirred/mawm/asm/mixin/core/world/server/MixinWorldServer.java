@@ -12,7 +12,6 @@ import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.commands.DualSourceCommandContext;
 import io.github.notstirred.mawm.converter.MAWMConverter;
 import io.github.notstirred.mawm.util.FreezableBox;
-import io.github.notstirred.mawm.util.MutablePair;
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorldServer;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
@@ -203,7 +202,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         long startTime = System.nanoTime();
 
-        MAWMConverter.convertUndo(context, tasks, () -> {
+        MAWMConverter.convertDualSource(context, tasks, () -> {
                 setManipulateStage(ManipulateStage.CONVERT_UNDO_FINISHED);
                 double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
 
@@ -242,7 +241,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
         long startTime = System.nanoTime();
 
-        MAWMConverter.convertUndo(context, tasks, () -> {
+        MAWMConverter.convertDualSource(context, tasks, () -> {
                 setManipulateStage(ManipulateStage.CONVERT_REDO_FINISHED);
                 double conversionTime = (System.nanoTime() - startTime) / (double) TimeUnit.SECONDS.toNanos(1);
 
@@ -323,13 +322,13 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
             try {
                 Files.delete(bakVecPath);
-                MAWM.LOGGER.debug("Deleted existing backup region file");
+                MAWM.LOGGER.trace("Deleted existing backup region file");
             } catch(IOException e) {
-                MAWM.LOGGER.debug("No backup region file existed to delete at " + bakVecPath);
+                MAWM.LOGGER.trace("No backup region file existed to delete at " + bakVecPath);
             }
             try {
                 Files.move(dstVecPath, bakVecPath);
-                MAWM.LOGGER.debug("Moved world region file into backup loc");
+                MAWM.LOGGER.trace("Moved world region file into backup loc");
             } catch (IOException e) {
                 MAWM.LOGGER.error("Couldn't find existing region file to move to backups at " + dstVecPath + ". " + e.getMessage());
                 e.printStackTrace();
@@ -341,9 +340,9 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
             try {
                 Files.copy(workingLocPath, bakCurrentVecPath, StandardCopyOption.REPLACE_EXISTING);
                 Files.move(workingLocPath, dstVecPath, StandardCopyOption.REPLACE_EXISTING);
-                MAWM.LOGGER.debug("Moved output region into world loc");
+                MAWM.LOGGER.trace("Moved output region into world loc");
             } catch (IOException e) {
-                MAWM.LOGGER.debug("No region file exists at " + workingLocPath + ", assuming converter had empty region at that location, skipping." + e.getMessage());
+                MAWM.LOGGER.trace("No region file exists at " + workingLocPath + ", assuming converter had empty region at that location, skipping." + e.getMessage());
             }
         }));
     }
@@ -394,7 +393,6 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         return affectedRegions;
     }
 
-    @Override
     public void addFreezeRegionsForTasks(Map.Entry<ICommandSender, List<EditTask>> playerTasks) {
         //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
         //TODO: SET & REPLACE don't need a SrcFreezeBox

@@ -38,11 +38,11 @@ public class MAWMConverter {
         try {
             w.convert();
         } catch (IOException e) {
-            e.printStackTrace();
+            MAWM.LOGGER.error(e);
         }
     }
 
-    public static void convertUndo(DualSourceCommandContext context, List<EditTask> tasks, Runnable onDone, Consumer<Throwable> onFail) {
+    public static void convertDualSource(DualSourceCommandContext context, List<EditTask> tasks, Runnable onDone, Consumer<Throwable> onFail) {
         ConverterConfig conf = new ConverterConfig(new HashMap<>());
 
         conf.set("relocations", tasks);
@@ -60,7 +60,7 @@ public class MAWMConverter {
         try {
             w.convert();
         } catch (IOException e) {
-            e.printStackTrace();
+            MAWM.LOGGER.error(e);
         }
     }
 }
