@@ -10,7 +10,7 @@ import cubicchunks.converter.lib.convert.cc2ccrelocating.CC2CCRelocatingLevelInf
 import cubicchunks.converter.lib.convert.io.CubicChunkReader;
 import cubicchunks.converter.lib.convert.io.CubicChunkWriter;
 import cubicchunks.converter.lib.convert.io.DualSourceCubicChunkReader;
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.commands.DualSourceCommandContext;
 

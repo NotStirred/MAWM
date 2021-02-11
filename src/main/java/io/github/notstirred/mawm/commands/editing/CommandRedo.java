@@ -1,6 +1,6 @@
 package io.github.notstirred.mawm.commands.editing;
 
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.util.LimitedFifoQueue;

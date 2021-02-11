@@ -1,6 +1,6 @@
 package io.github.notstirred.mawm.asm.mixininterfaces;
 
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.util.FreezableBox;

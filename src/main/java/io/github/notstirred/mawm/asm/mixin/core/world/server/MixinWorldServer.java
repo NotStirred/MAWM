@@ -2,7 +2,7 @@ package io.github.notstirred.mawm.asm.mixin.core.world.server;
 
 import cubicchunks.converter.headless.command.HeadlessCommandContext;
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;

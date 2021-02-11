@@ -1,6 +1,6 @@
 package io.github.notstirred.mawm;
 
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;

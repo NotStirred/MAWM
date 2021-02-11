@@ -1,7 +1,7 @@
 package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.EditTask;
+import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
