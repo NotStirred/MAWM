@@ -50,18 +50,21 @@ import java.util.function.Consumer;
 public abstract class MixinCubeProviderServer extends ChunkProviderServer implements ICubeProviderServer, IFreezableCubeProviderServer {
 
     @Shadow(remap = false)
+    private Chunk currentlyLoadingColumn;
+
+    @Shadow(remap = false)
     private ICubeIO cubeIO;
 
     @Shadow(remap = false)
     @Nullable
-    protected abstract Chunk postProcessColumn(int columnX, int columnZ, @Nullable Chunk column, ICubeProviderServer.Requirement req);
+    protected abstract Chunk postProcessColumn(int columnX, int columnZ, @Nullable Chunk column, ICubeProviderServer.Requirement req, boolean force);
 
     @Shadow(remap = false)
     protected abstract void onCubeLoaded(@Nullable Cube cube, Chunk column);
 
     @Shadow(remap = false)
     @Nullable
-    protected abstract Cube postCubeLoadAttempt(int cubeX, int cubeY, int cubeZ, @Nullable Cube cube, Chunk column, ICubeProviderServer.Requirement req);
+    protected abstract Cube postCubeLoadAttempt(int cubeX, int cubeY, int cubeZ, @Nullable Cube cube, Chunk column, ICubeProviderServer.Requirement req, boolean forceNow);
 
     @Shadow(remap = false)
     @Nonnull
@@ -97,9 +100,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
      * @reason freezable columns
      */
     @Overwrite(remap = false)
-    @Override
     @Nullable
-    public Chunk getColumn(int columnX, int columnZ, ICubeProviderServer.Requirement req) {
+    private Chunk getColumn(int columnX, int columnZ, ICubeProviderServer.Requirement req, boolean forceNow) {
         Chunk column = this.getLoadedChunk(columnX, columnZ);
         if (column != null) {
             return column;
@@ -117,9 +119,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
         if (req == ICubeProviderServer.Requirement.GET_CACHED) {
             return column;
         }
-
-        column = AsyncWorldIOExecutor.syncColumnLoad(world, cubeIO, columnX, columnZ);
-        column = postProcessColumn(columnX, columnZ, column, req);
+        column = AsyncWorldIOExecutor.syncColumnLoad(world, cubeIO, columnX, columnZ, col -> currentlyLoadingColumn = col);
+        column = postProcessColumn(columnX, columnZ, column, req, forceNow);
 
         return column;
     }
@@ -146,9 +147,8 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
      * @reason freezable cubes
      */
     @Overwrite(remap = false)
-    @Override
     @Nullable
-    public Cube getCube(int cubeX, int cubeY, int cubeZ, ICubeProviderServer.Requirement req) {
+    private Cube getCube(int cubeX, int cubeY, int cubeZ, ICubeProviderServer.Requirement req, boolean forceNow) {
         Cube cube = getLoadedCube(cubeX, cubeY, cubeZ);
 
         if (req == ICubeProviderServer.Requirement.GET_CACHED ||
@@ -177,7 +177,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             cube = AsyncWorldIOExecutor.syncCubeLoad(world, cubeIO, (CubeProviderServer) (Object) this, cubeX, cubeY, cubeZ);
             onCubeLoaded(cube, column);
         }
-        return postCubeLoadAttempt(cubeX, cubeY, cubeZ, cube, column, req);
+        return postCubeLoadAttempt(cubeX, cubeY, cubeZ, cube, column, req, forceNow);
     }
 
     /**
@@ -211,7 +211,7 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
                 Chunk col = getLoadedColumn(cubeX, cubeZ);
                 if (col != null) {
                     onCubeLoaded(loaded, col);
-                    loaded = postCubeLoadAttempt(cubeX, cubeY, cubeZ, loaded, col, req);
+                    loaded = postCubeLoadAttempt(cubeX, cubeY, cubeZ, loaded, col, req, false);
                 }
                 callback.accept(loaded);
             });
@@ -241,10 +241,11 @@ public abstract class MixinCubeProviderServer extends ChunkProviderServer implem
             callback.accept(frozenColumn);
             return;
         }
+
         AsyncWorldIOExecutor.queueColumnLoad(world, cubeIO, columnX, columnZ, col -> {
-            col = postProcessColumn(columnX, columnZ, col, req);
+            col = postProcessColumn(columnX, columnZ, col, req, false);
             callback.accept(col);
-        });
+        }, col -> currentlyLoadingColumn = col);
     }
 
     @Inject(method = "tryUnloadColumn", at = @At("HEAD"), cancellable = true, remap = false)
