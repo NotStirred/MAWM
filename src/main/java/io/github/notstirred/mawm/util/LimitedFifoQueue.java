@@ -1,32 +1,24 @@
 package io.github.notstirred.mawm.util;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class LimitedFifoQueue<T> {
     private int tail = 0;
-    private int head;
-    private int maxHead;
+    private int head = 0;
+    private int maxHead = 0;
 
-    private final int limit;
-    private final List<T> list;
+    private final int max;
+    private final SimpleArray<T> list;
 
     public LimitedFifoQueue(int _limit) {
-        this(new ArrayList<>(_limit), _limit);
-    }
-
-    public LimitedFifoQueue(List<T> _list, int _limit) {
-        list = _list;
-        limit = _limit;
-        head = list.size();
-        maxHead = head;
+        list = new SimpleArray<>(_limit);
+        max = _limit-1;
     }
 
     public void push(T val) {
-        list.add(head, val);
+        list.set(head, val);
         incrementHead();
         maxHead = head;
-        tail = Math.max(0, maxHead-limit);
+        if(head == tail) // if they are equal head must have wrapped around fully, meaning tail should move forwards
+            incrementTail();
     }
 
     public int getHead() {
@@ -34,7 +26,7 @@ public class LimitedFifoQueue<T> {
     }
 
     public boolean hasPrev() {
-        return head > tail;
+        return head != tail;
     }
     public boolean hasNext() { //Because maxHead can never be lower than head, and can wrap round to 0, this is the only case where there is no next
         return maxHead != head;
@@ -62,12 +54,20 @@ public class LimitedFifoQueue<T> {
         maxHead = 0;
         tail = 0;
     }
+
     private void incrementHead() {
         head++;
-        head %= limit;
+        head %= list.length;
     }
 
     private void decrementHead() {
         head--;
+        if(head < 0)
+            head += max + 1;
+    }
+
+    private void incrementTail() {
+        tail++;
+        tail %= max;
     }
 }
