@@ -266,9 +266,10 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
         int cubeCount = 0;
         //TODO: add per-task-type cube counting
         for (EditTask completedTask : activePlayerTasks.getValue()) {
-            BoundingBox sourceBox = completedTask.getSourceBox();
-            Vector3i taskDimensions = sourceBox.getMaxPos().sub(sourceBox.getMinPos());
-            cubeCount += (taskDimensions.getX() + 1) * (taskDimensions.getY() + 1) * (taskDimensions.getZ() + 1);
+            for (BoundingBox box : completedTask.getSrcBoxes()) {
+                Vector3i taskDimensions = box.getMaxPos().sub(box.getMinPos());
+                cubeCount += (taskDimensions.getX() + 1) * (taskDimensions.getY() + 1) * (taskDimensions.getZ() + 1);
+            }
         }
 
         double cubesPerSecond = cubeCount / conversionTime;
@@ -350,31 +351,8 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     private Set<Vector3i> getRegionFilesModifiedByTask(EditTask task) {
         Set<Vector3i> vectors = new HashSet<>();
 
-        switch(task.getType()) {
-            case MOVE:
-                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
-                break;
-            case CUT:
-                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox()));
-                if(task.getOffset() != null) {
-                    vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
-                }
-                break;
-            case COPY:
-                if(task.getOffset() != null) {
-                    vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox().add(task.getOffset())));
-                }
-                break;
-            case SET:
-            case REPLACE:
-            case KEEP:
-            case REMOVE:
-                vectors.addAll(getRegionFilesWithinBoundingBox(task.getSourceBox()));
-                break;
+        task.getDstBoxes().forEach(box -> vectors.addAll(getRegionFilesWithinBoundingBox(box)));
 
-            default:
-                throw new IllegalStateException("Unexpected value: " + task.getType());
-        }
         return vectors;
     }
 
@@ -394,33 +372,9 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
     }
 
     public void addFreezeRegionsForTasks(Map.Entry<ICommandSender, List<EditTask>> playerTasks) {
-        //TODO: fix commands that don't have a src freeze box, such as cut 0 0 0 15 15 15
-        //TODO: SET & REPLACE don't need a SrcFreezeBox
         playerTasks.getValue().forEach(task -> {
-            addSrcFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
-            if(task.getOffset() != null) {
-                addDstFreezeBox(new FreezableBox(
-                        task.getSourceBox().getMinPos().add(task.getOffset()),
-                        task.getSourceBox().getMaxPos().add(task.getOffset())
-                ));
-            }
-
-            switch (task.getType()) {
-                case NONE:
-                case KEEP:
-                case COPY:
-                    break;
-                case CUT:
-                case MOVE:
-                case REMOVE:
-                case REPLACE:
-                case SET:
-                    addDstFreezeBox(new FreezableBox(task.getSourceBox().getMinPos(), task.getSourceBox().getMaxPos()));
-                    break;
-
-                default:
-                    throw new IllegalStateException("Unexpected value: " + task.getType());
-            }
+            task.getSrcBoxes().forEach(box -> addSrcFreezeBox(new FreezableBox(box.getMinPos(), box.getMaxPos())));
+            task.getDstBoxes().forEach(box -> addDstFreezeBox(new FreezableBox(box.getMinPos(), box.getMaxPos())));
         });
     }
 

@@ -1,7 +1,7 @@
 package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.edittask.EditTask;
+import cubicchunks.converter.lib.util.edittask.CopyEditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
@@ -54,7 +54,7 @@ public class CommandCopy extends CommandBase {
             } else
                 throw new CommandException("mawm.command.copy.no_args");
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new EditTask(box, offset, EditTask.Type.COPY));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new CopyEditTask(box, offset));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));

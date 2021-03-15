@@ -1,8 +1,8 @@
 package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
+import cubicchunks.converter.lib.util.edittask.RemoveEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.input.CubeWandHandler;
@@ -43,7 +43,7 @@ public class CommandRegen extends CommandBase {
                     positions.getValue()
             );
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new EditTask(box, null, EditTask.Type.REMOVE));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new RemoveEditTask(box));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));

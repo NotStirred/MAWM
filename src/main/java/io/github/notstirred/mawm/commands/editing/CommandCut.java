@@ -1,8 +1,8 @@
 package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
+import cubicchunks.converter.lib.util.edittask.CutEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.input.CubeWandHandler;
@@ -55,7 +55,7 @@ public class CommandCut extends CommandBase {
             } else if (args.length == 0) {
             } //doing a cut from wandpos1 to wandpos2 WITHOUT an offset
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new EditTask(box, offset, EditTask.Type.CUT));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new CutEditTask(box, offset));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
