@@ -38,40 +38,24 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
     //TODO: prioritise saving frozen cubes first (probably need SaveEntry shadow class for that first however)
     //saving
     @Redirect(method = "writeNextIO", at = @At(value = "INVOKE", target = "Lcubicchunks/regionlib/impl/SaveCubeColumns;save2d(Lcubicchunks/regionlib/impl/EntryLocation2D;Ljava/nio/ByteBuffer;)V"))
-    private void writeNextIO$skipSrcColumn(SaveCubeColumns save, EntryLocation2D entry, ByteBuffer data) {
-        if(((IFreezableWorld) world).isSrcSavingLocked()) {
-            if (((IFreezableWorld) world).is2dRegionSrc(entry)) {
-                return;
-            }
-        }
-        if(((IFreezableWorld) world).isDstSavingLocked()) {
-            if(((IFreezableWorld) world).is2dRegionDst(entry)) {
-                return;
-            }
-        }
-        try {
-            save.save2d(entry, data);
-        } catch (Throwable t) {
-            LOGGER.error(String.format("Unable to write column (%d, %d)", entry.getEntryX(), entry.getEntryZ()), t);
-        }
+    private void writeNextIO$skipSrcColumn(SaveCubeColumns save, EntryLocation2D entry, ByteBuffer data) throws IOException {
+        if(((IFreezableWorld) world).isSrcSavingLocked() && ((IFreezableWorld) world).is2dRegionSrc(entry))
+            return;
+
+        if(((IFreezableWorld) world).isDstSavingLocked() && ((IFreezableWorld) world).is2dRegionDst(entry))
+            return;
+
+        save.save2d(entry, data);
     }
     @Redirect(method = "writeNextIO", at = @At(value = "INVOKE", target = "Lcubicchunks/regionlib/impl/SaveCubeColumns;save3d(Lcubicchunks/regionlib/impl/EntryLocation3D;Ljava/nio/ByteBuffer;)V"))
-    private void writeNextIO$skipSrcCube(SaveCubeColumns save, EntryLocation3D entry, ByteBuffer data) {
-        if(((IFreezableWorld) world).isSrcSavingLocked()) {
-            if (((IFreezableWorld) world).is3dRegionSrc(entry)) {
+    private void writeNextIO$skipSrcCube(SaveCubeColumns save, EntryLocation3D entry, ByteBuffer data) throws IOException {
+        if(((IFreezableWorld) world).isSrcSavingLocked() && ((IFreezableWorld) world).is3dRegionSrc(entry))
                 return;
-            }
-        }
-        if(((IFreezableWorld) world).isDstSavingLocked()) {
-            if(((IFreezableWorld) world).is3dRegionDst(entry)) {
+
+        if(((IFreezableWorld) world).isDstSavingLocked() && ((IFreezableWorld) world).is3dRegionDst(entry))
                 return;
-            }
-        }
-        try {
-            save.save3d(entry, data);
-        } catch (Throwable t) {
-            LOGGER.error(String.format("Unable to write cube %d, %d, %d", entry.getEntryX(), entry.getEntryY(), entry.getEntryZ()), t);
-        }
+
+        save.save3d(entry, data);
     }
 
     //adding to save
