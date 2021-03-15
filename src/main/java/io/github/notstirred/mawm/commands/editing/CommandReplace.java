@@ -1,9 +1,8 @@
 package io.github.notstirred.mawm.commands.editing;
 
-import cubicchunks.converter.lib.util.edittask.BlockEditTask;
 import cubicchunks.converter.lib.util.BoundingBox;
-import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.converter.lib.util.Vector3i;
+import cubicchunks.converter.lib.util.edittask.ReplaceEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.input.CubeWandHandler;
@@ -60,7 +59,7 @@ public class CommandReplace extends CommandBase {
             @SuppressWarnings("deprecation")
             int outId = Block.BLOCK_STATE_IDS.get(outState);
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new BlockEditTask(box, null, EditTask.Type.REPLACE,
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new ReplaceEditTask(box,
                     (byte) (inId >> 4 & 255), (byte) (inId & 15),
                     (byte) (outId >> 4 & 255), (byte) (outId & 15)
             ));

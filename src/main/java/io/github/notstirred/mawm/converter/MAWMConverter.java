@@ -25,7 +25,8 @@ public class MAWMConverter {
 
         conf.set("relocations", tasks);
 
-        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+//        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+        tasks.forEach(MAWM.LOGGER::debug);
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
             new CC2CCRelocatingLevelInfoConverter(context.getSrcWorld(), context.getDstWorld()),
@@ -47,7 +48,8 @@ public class MAWMConverter {
 
         conf.set("relocations", tasks);
 
-        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+//        tasks.forEach((task) -> MAWM.LOGGER.debug(task.getSourceBox().toString() + (task.getOffset() != null ? task.getOffset().toString() : "") + task.getType().toString()));
+        tasks.forEach(MAWM.LOGGER::debug);
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
             new CC2CCDualSourceMergingLevelInfoConverter(context.getPriorityWorld(), context.getFallbackWorld(), context.getDstWorld()),

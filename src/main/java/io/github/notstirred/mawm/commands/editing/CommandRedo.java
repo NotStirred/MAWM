@@ -11,8 +11,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
 
-import static io.github.notstirred.mawm.commands.editing.CommandUndo.getInverseForTask;
-
 public class CommandRedo extends CommandBase {
     @Override
     public String getName() {
@@ -32,7 +30,7 @@ public class CommandRedo extends CommandBase {
             LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().computeIfAbsent(player.getUniqueID(), (uuid) -> new LimitedFifoQueue<>(10));
             if(tasksForPlayer.hasNext()) {
                 if(args.length == 0)
-                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
                 else {
                     try {
                         int numSteps = Integer.parseInt(args[0]);
@@ -41,7 +39,7 @@ public class CommandRedo extends CommandBase {
                                 for (int i = 0; i < numSteps; i++) {
                                     if(!tasksForPlayer.hasNext())
                                         break;
-                                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
                                 }
                                 sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_all", numSteps));
                             }
@@ -52,7 +50,7 @@ public class CommandRedo extends CommandBase {
                                 sender.sendMessage(new TextComponentTranslation("mawm.command.redo.none"));
                                 break;
                             }
-                            ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, getInverseForTask(tasksForPlayer.getNext()));
+                            ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
                             ((IFreezableWorld) sender.getEntityWorld()).requestRedoTasksExecute();
                             sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_i", i));
                         }

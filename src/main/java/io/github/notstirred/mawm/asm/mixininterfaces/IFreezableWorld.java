@@ -4,7 +4,6 @@ import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
 import io.github.notstirred.mawm.util.FreezableBox;
-import io.github.notstirred.mawm.util.MutablePair;
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
 import net.minecraft.command.ICommandSender;
@@ -12,7 +11,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.List;
-import java.util.Map;
 
 public interface IFreezableWorld {
 
