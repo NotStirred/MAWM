@@ -17,7 +17,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Mixin(value = RegionCubeIO.class, remap = false)
@@ -29,6 +31,9 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
 
     @Shadow @Nonnull private ConcurrentMap<CubePos, Object> cubesToSave;
     @Shadow @Nonnull private ConcurrentMap<ChunkPos, Object> columnsToSave;
+
+    private ConcurrentMap<CubePos, Object> deferredCubesToSave = new ConcurrentHashMap<>();
+    private ConcurrentMap<ChunkPos, Object> deferredColumnsToSave = new ConcurrentHashMap<>();
 
     //TODO: prioritise saving frozen cubes first (probably need SaveEntry shadow class for that first however)
     //saving
@@ -72,29 +77,23 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
     //adding to save
     @Redirect(method = "saveColumn", at = @At(value = "INVOKE", target = "Ljava/util/concurrent/ConcurrentMap;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
     private Object saveColumn$skipFrozenColumn(ConcurrentMap<Object, Object> concurrentMap, Object chunkPos, Object saveEntry) {
-        if(((IFreezableWorld) world).isSrcSaveAddingLocked()) {
-            if (((IFreezableWorld) world).isColumnSrc((ChunkPos) chunkPos, false)) {
+        if(((IFreezableWorld) world).isSrcSaveAddingLocked() || ((IFreezableWorld) world).isDstSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isColumnSrc((ChunkPos) chunkPos, false) || ((IFreezableWorld) world).isColumnDst((ChunkPos) chunkPos, false)) {
                 return null;
             }
-        }
-        if(((IFreezableWorld) world).isDstSaveAddingLocked()) {
-            if (((IFreezableWorld) world).isColumnDst((ChunkPos) chunkPos, false)) {
-                return null;
-            }
+            deferredColumnsToSave.put((ChunkPos) chunkPos, saveEntry);
+            return null;
         }
         return concurrentMap.put(chunkPos, saveEntry);
     }
     @Redirect(method = "saveCube", at = @At(value = "INVOKE", target = "Ljava/util/concurrent/ConcurrentMap;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
     private Object saveCube$skipFrozenCube(ConcurrentMap<Object, Object> concurrentMap, Object cubePos, Object saveEntry) {
-        if(((IFreezableWorld) world).isSrcSaveAddingLocked()) {
-            if (((IFreezableWorld) world).isCubeSrc((CubePos) cubePos, false)) {
+        if(((IFreezableWorld) world).isSrcSaveAddingLocked() || ((IFreezableWorld) world).isDstSaveAddingLocked()) {
+            if (((IFreezableWorld) world).isCubeSrc((CubePos) cubePos, false) || ((IFreezableWorld) world).isCubeDst((CubePos) cubePos, false)) {
                 return null;
             }
-        }
-        if(((IFreezableWorld) world).isDstSaveAddingLocked()) {
-            if (((IFreezableWorld) world).isCubeDst((CubePos) cubePos, false)) {
-                return null;
-            }
+            deferredCubesToSave.put((CubePos) cubePos, saveEntry);
+            return null;
         }
         return concurrentMap.put(cubePos, saveEntry);
     }
@@ -106,5 +105,16 @@ public abstract class MixinRegionCubeIO implements IRegionCubeIO {
     @Override
     public boolean hasFrozenSrcColumnsToBeSaved() {
         return columnsToSave.keySet().stream().anyMatch(chunkPos -> ((IFreezableWorld) world).isColumnSrc(chunkPos, false));
+    }
+
+    @Override
+    public void flushDeferredCubes() {
+        cubesToSave.putAll(deferredCubesToSave);
+        deferredCubesToSave.clear();
+    }
+    @Override
+    public void flushDeferredColumns() {
+        columnsToSave.putAll(deferredColumnsToSave);
+        deferredColumnsToSave.clear();
     }
 }

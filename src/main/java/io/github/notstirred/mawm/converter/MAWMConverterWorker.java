@@ -48,31 +48,7 @@ public class MAWMConverterWorker {
 
     private IProgressListener.ErrorHandleResult showErrorMessage(Throwable error) {
         LOGGER.info(exceptionString(error));
-        System.err.println("An error occurred while converting chunks. Do you want to continue?\n(I)gnore/ignore (A)ll/cancel and (K)eep results/cancel and (D)elete results");
-
-        IProgressListener.ErrorHandleResult code = IProgressListener.ErrorHandleResult.IGNORE;
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        while(true) {
-            try {
-                String line = reader.readLine();
-                if(!line.equals("")) {
-                    char c = line.toUpperCase().charAt(0);
-                    switch (c) {
-                        case 'I':
-                            return IProgressListener.ErrorHandleResult.IGNORE;
-                        case 'A':
-                            return IProgressListener.ErrorHandleResult.IGNORE_ALL;
-                        case 'K':
-                            return IProgressListener.ErrorHandleResult.STOP_KEEP_DATA;
-                        case 'D':
-                            return IProgressListener.ErrorHandleResult.STOP_DISCARD;
-                    }
-                }
-            } catch (IOException e) {
-                throw new Error(e);
-            }
-        }
+        return IProgressListener.ErrorHandleResult.STOP_KEEP_DATA;
     }
 
     protected void process() {

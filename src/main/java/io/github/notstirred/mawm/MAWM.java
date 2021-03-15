@@ -172,6 +172,10 @@ public class MAWM {
             world.setSrcSaveAddingLocked(false);
             world.setDstSavingLocked(false);
             world.setDstSaveAddingLocked(false);
+            IRegionCubeIO cubeIO = (IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO();
+            cubeIO.flushDeferredColumns();
+            cubeIO.flushDeferredCubes();
+
             ((IFreezableCubeProviderServer) event.world.getChunkProvider()).reload();
 
             if(world.hasDeferredTasks()) //If there were any deferred tasks, execute them.
