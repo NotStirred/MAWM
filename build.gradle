@@ -3,6 +3,7 @@ buildscript {
         maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
         mavenCentral()
+        mavenLocal()
         maven {
             name = 'sponge'
             url = 'https://repo.spongepowered.org/maven'
@@ -48,7 +49,7 @@ jar {
                 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'MixinConfigs': 'mixins.mawm.json',
                 'FMLCorePluginContainsFMLMod': 'true',
-                "ForceLoadAsMod": "true"
+                "ForceLoadAsMod": "true",
         ])
     }
 }
