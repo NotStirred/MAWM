@@ -93,7 +93,7 @@ public abstract class MixinAsyncBatchingCubeIO implements IRegionCubeIO {
     }
 
     @Override
-    public void flushDeferredCubes() {
+    public void flushDeferred() {
         lock.readLock().lock();
         try {
             this.ensureOpen();
@@ -103,36 +103,24 @@ public abstract class MixinAsyncBatchingCubeIO implements IRegionCubeIO {
             // except we have to write the NBT in this thread to avoid problems
             // with concurrent access to world data structures
 
-            // add the column to the save queue
-            for (Iterator<Cube> iterator = deferredCubes.iterator(); iterator.hasNext(); ) {
-                Cube cube = iterator.next();
-                iterator.remove();
-                this.pendingCubes.put(cube.getCoords(), AccessIONbtWriter.invokeWrite(cube));
-                cube.markSaved();
-
-                // signal the IO thread to process the save queue
-                ThreadedFileIOBase.getThreadedIOInstance().queueIO((AsyncBatchingCubeIO) (Object) this);
-            }
-
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-    @Override
-    public void flushDeferredColumns() {
-        lock.readLock().lock();
-        try {
-            this.ensureOpen();
-
+            // add deferred columns to the save queue
             for (Iterator<Chunk> iterator = deferredColumns.iterator(); iterator.hasNext(); ) {
                 Chunk column = iterator.next();
                 iterator.remove();
                 this.pendingColumns.put(column.getPos(), AccessIONbtWriter.invokeWrite(column));
                 column.setModified(false);
-
-                // signal the IO thread to process the save queue
-                ThreadedFileIOBase.getThreadedIOInstance().queueIO((AsyncBatchingCubeIO) (Object) this);
             }
+
+            // add deferred cubes to the save queue
+            for (Iterator<Cube> iterator = deferredCubes.iterator(); iterator.hasNext(); ) {
+                Cube cube = iterator.next();
+                iterator.remove();
+                this.pendingCubes.put(cube.getCoords(), AccessIONbtWriter.invokeWrite(cube));
+                cube.markSaved();
+            }
+
+            // signal the IO thread to process the save queue
+            ThreadedFileIOBase.getThreadedIOInstance().queueIO((AsyncBatchingCubeIO) (Object) this);
 
         } finally {
             lock.readLock().unlock();
