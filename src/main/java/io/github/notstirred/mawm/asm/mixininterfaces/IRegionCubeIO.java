@@ -4,6 +4,5 @@ public interface IRegionCubeIO {
     boolean hasFrozenSrcCubesToBeSaved();
     boolean hasFrozenSrcColumnsToBeSaved();
 
-    void flushDeferredCubes();
-    void flushDeferredColumns();
+    void flushDeferred();
 }
