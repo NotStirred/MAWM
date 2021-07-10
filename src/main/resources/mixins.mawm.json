@@ -11,7 +11,8 @@
     "cubicchunks.server.AccessCubeWatcher",
     "cubicchunks.server.AccessPlayerCubeMap",
     "cubicchunks.server.MixinColumnWatcher",
-    "cubicchunks.server.io.MixinRegionCubeIO",
+    "cubicchunks.server.io.AccessIONbtWriter",
+    "cubicchunks.server.io.MixinAsyncBatchingCubeIO",
     "cubicchunks.util.ticket.AccessTicketList",
     "server.AccessPlayerChunkMapEntry",
     "world.server.MixinWorldServer"

@@ -7,9 +7,7 @@ import cubicchunks.converter.lib.convert.cc2ccmerging.CC2CCDualSourceMergingData
 import cubicchunks.converter.lib.convert.cc2ccmerging.CC2CCDualSourceMergingLevelInfoConverter;
 import cubicchunks.converter.lib.convert.cc2ccrelocating.CC2CCRelocatingDataConverter;
 import cubicchunks.converter.lib.convert.cc2ccrelocating.CC2CCRelocatingLevelInfoConverter;
-import cubicchunks.converter.lib.convert.io.CubicChunkReader;
-import cubicchunks.converter.lib.convert.io.CubicChunkWriter;
-import cubicchunks.converter.lib.convert.io.DualSourceCubicChunkReader;
+import cubicchunks.converter.lib.convert.io.*;
 import cubicchunks.converter.lib.util.edittask.EditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.commands.DualSourceCommandContext;
@@ -30,9 +28,9 @@ public class MAWMConverter {
 
         WorldConverter<?, ?> converter = new WorldConverter<>(
             new CC2CCRelocatingLevelInfoConverter(context.getSrcWorld(), context.getDstWorld()),
-            new CubicChunkReader(context.getSrcWorld(), conf),
+            new PriorityCubicChunkReader(context.getSrcWorld(), conf),
             new CC2CCRelocatingDataConverter(conf),
-            new CubicChunkWriter(context.getDstWorld())
+            new PriorityCubicChunkWriter(context.getDstWorld())
         );
 
         MAWMConverterWorker w = new MAWMConverterWorker(converter, onDone, onFail);
