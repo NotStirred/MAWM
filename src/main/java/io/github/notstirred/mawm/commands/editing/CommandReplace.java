@@ -54,13 +54,27 @@ public class CommandReplace extends CommandBase {
                 throw new CommandException("mawm.command.replace.no_args");
             }
 
-            Block inBlock = CommandBase.getBlockByText(sender, args[0]);
-            IBlockState inState = inBlock.getDefaultState();
+            IBlockState inState;
+            if(args[0].contains(":")) {
+                String[] split = args[0].split(":");
+                Block inBlock = CommandBase.getBlockByText(sender, split[0]);
+                inState = CommandBase.convertArgToBlockState(inBlock, split[1]);
+            } else {
+                Block inBlock = CommandBase.getBlockByText(sender, args[0]);
+                inState = inBlock.getDefaultState();
+            }
             @SuppressWarnings("deprecation")
             int inId = Block.BLOCK_STATE_IDS.get(inState);
 
-            Block outBlock = CommandBase.getBlockByText(sender, args[1]);
-            IBlockState outState = outBlock.getDefaultState();
+            IBlockState outState;
+            if(args[1].contains(":")) {
+                String[] split = args[1].split(":");
+                Block inBlock = CommandBase.getBlockByText(sender, split[0]);
+                outState = CommandBase.convertArgToBlockState(inBlock, split[1]);
+            } else {
+                Block inBlock = CommandBase.getBlockByText(sender, args[1]);
+                outState = inBlock.getDefaultState();
+            }
             @SuppressWarnings("deprecation")
             int outId = Block.BLOCK_STATE_IDS.get(outState);
 
