@@ -3,6 +3,10 @@ package io.github.notstirred.mawm.commands.editing;
 import cubicchunks.converter.lib.util.edittask.EditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.converter.task.MergeTaskRequest;
+import io.github.notstirred.mawm.converter.task.TaskRequest;
+import io.github.notstirred.mawm.converter.task.source.BackupTaskSource;
+import io.github.notstirred.mawm.converter.task.source.WorldTaskSource;
 import io.github.notstirred.mawm.util.LimitedFifoQueue;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
@@ -10,6 +14,10 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.WorldServer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class CommandRedo extends CommandBase {
     @Override
@@ -27,31 +35,28 @@ public class CommandRedo extends CommandBase {
         if (sender.getCommandSenderEntity() instanceof EntityPlayer) {
             EntityPlayer player = (EntityPlayer) sender.getCommandSenderEntity();
 
-            LimitedFifoQueue<EditTask> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().computeIfAbsent(player.getUniqueID(), (uuid) -> new LimitedFifoQueue<>(10));
+            LimitedFifoQueue<TaskRequest> tasksForPlayer = MAWM.INSTANCE.getPlayerTaskHistory().computeIfAbsent(player.getUniqueID(), (uuid) -> new LimitedFifoQueue<>(10));
             if(tasksForPlayer.hasNext()) {
-                if(args.length == 0)
-                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
-                else {
+                if(args.length == 0) {
+                    List<EditTask> inverseTasks = getInverseForTasks(tasksForPlayer.getNext().getTasks());
+
+                    ((IFreezableWorld) sender.getEntityWorld()).addUndoRedoTask(new MergeTaskRequest(sender, inverseTasks, false,
+                        new BackupTaskSource(player), new WorldTaskSource(((WorldServer) player.world)), new WorldTaskSource(((WorldServer) player.world))));
+                } else {
                     try {
                         int numSteps = Integer.parseInt(args[0]);
-                        if(args.length >= 2) {
-                            if(args[1].equalsIgnoreCase("true")) {
-                                for (int i = 0; i < numSteps; i++) {
-                                    if(!tasksForPlayer.hasNext())
-                                        break;
-                                    ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
-                                }
-                                sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_all", numSteps));
-                            }
-                            return;
-                        }
+
                         for (int i = 0; i < numSteps; i++) {
                             if(!tasksForPlayer.hasNext()) {
                                 sender.sendMessage(new TextComponentTranslation("mawm.command.redo.none"));
                                 break;
                             }
-                            ((IFreezableWorld) sender.getEntityWorld()).addRedoTask(sender, tasksForPlayer.getNext().getInverse());
-                            ((IFreezableWorld) sender.getEntityWorld()).requestRedoTasksExecute();
+
+                            List<EditTask> inverseTasks = getInverseForTasks(tasksForPlayer.getNext().getTasks());
+
+                            ((IFreezableWorld) sender.getEntityWorld()).addUndoRedoTask(new MergeTaskRequest(sender, inverseTasks, false,
+                                new BackupTaskSource(player), new WorldTaskSource(((WorldServer) player.world)), new WorldTaskSource(((WorldServer) player.world))));;
+                            ((IFreezableWorld) sender.getEntityWorld()).requestUndoRedoTasksExecute();
                             sender.sendMessage(new TextComponentTranslation("mawm.command.redo.completed_i", i));
                         }
                         return;
@@ -69,7 +74,13 @@ public class CommandRedo extends CommandBase {
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));
         } else {
-            ((IFreezableWorld) sender.getEntityWorld()).requestRedoTasksExecute();
+            ((IFreezableWorld) sender.getEntityWorld()).requestUndoRedoTasksExecute();
         }
+    }
+
+    public static List<EditTask> getInverseForTasks(List<EditTask> tasks) {
+        List<EditTask> inverseTasks = new ArrayList<>();
+        tasks.forEach(task -> inverseTasks.addAll(task.getInverse()));
+        return inverseTasks;
     }
 }

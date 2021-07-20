@@ -5,6 +5,8 @@ import cubicchunks.converter.lib.util.edittask.CopyEditTask;
 import cubicchunks.converter.lib.util.Vector3i;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.converter.task.RelocateTaskRequest;
+import io.github.notstirred.mawm.converter.task.source.WorldTaskSource;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.command.CommandBase;
@@ -13,6 +15,10 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.WorldServer;
+
+import java.nio.file.Paths;
+import java.util.Collections;
 
 public class CommandCopy extends CommandBase {
     @Override
@@ -54,7 +60,9 @@ public class CommandCopy extends CommandBase {
             } else
                 throw new CommandException("mawm.command.copy.no_args");
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new CopyEditTask(box, offset));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(
+                new RelocateTaskRequest(sender, Collections.singletonList(new CopyEditTask(box, offset)), true,
+                    new WorldTaskSource(((WorldServer) sender.getEntityWorld())), MAWM.INSTANCE.workingDirectory));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));

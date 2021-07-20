@@ -1,12 +1,10 @@
 package io.github.notstirred.mawm.commands.debug;
 
-import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.WorldServer;
 import net.minecraftforge.server.command.TextComponentHelper;
 
 public class CommandConvert extends CommandBase {
@@ -22,7 +20,7 @@ public class CommandConvert extends CommandBase {
 
     @Override
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
-        ((IFreezableWorld) sender.getEntityWorld()).convertCommand();
+        ((IFreezableWorld) sender.getEntityWorld()).taskStart();
 
         sender.sendMessage(TextComponentHelper.createComponentTranslation(sender, "mawm.command.debug.convert.success"));
     }
