@@ -54,9 +54,15 @@ public class CommandSet extends CommandBase {
                 throw new CommandException("mawm.command.set.no_args");
             }
 
-            Block block = CommandBase.getBlockByText(sender, args[0]);
-            IBlockState state = block.getDefaultState();
-
+            IBlockState state;
+            if(args[0].contains(":")) {
+                String[] split = args[0].split(":");
+                Block inBlock = CommandBase.getBlockByText(sender, split[0]);
+                state = CommandBase.convertArgToBlockState(inBlock, split[1]);
+            } else {
+                Block inBlock = CommandBase.getBlockByText(sender, args[0]);
+                state = inBlock.getDefaultState();
+            }
             @SuppressWarnings("deprecation")
             int id = Block.BLOCK_STATE_IDS.get(state);
             ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new SetEditTask(box, (byte)(id >> 4 & 255), (byte)(id & 15))), true,
