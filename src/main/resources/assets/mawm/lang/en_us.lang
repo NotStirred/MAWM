@@ -1,13 +1,16 @@
 mawm.execute.error.missing_existing_region=Something went very wrong! Couldn't find the existing region file to move to backups at position %s!
 mawm.execute.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
 mawm.execute.completed.stats=%d tasks completed for %d players in %d seconds - (%dCPS)(%dBPS)
-mawm.undo.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
-mawm.undo.completed.stats=%d tasks completed for %d players in %d seconds
+mawm.execute_undoredo.error.converter_error=An unexpected error occured! It has been logged in latest.log and debug.log!
+mawm.execute_undoredo.completed.stats=%d tasks completed for %d players in %d seconds
+
 mawm.command.undo.usage=undo usage
 mawm.command.undo.none=Nothing left to undo!
 mawm.command.undo.completed_all=%d steps undone!
 mawm.command.undo.completed_i=Step %d undone!
 mawm.command.undo.invalid_steps=Invalid number of undo steps
+
+mawm.command.redo.usage=redo usage
 mawm.command.redo.none=Nothing left to redo!
 mawm.command.redo.completed_all=%d steps redone!
 mawm.command.redo.completed_i=Step %d redone!
@@ -19,28 +22,39 @@ mawm.command.debug.freezebox.success=Box added to frozen boxes!
 mawm.command.debug.freeze.success=Frozen!
 mawm.command.debug.unfreeze.success=Unfrozen!
 mawm.command.debug.convert.success=Converting!
+
 mawm.command.execute.no_tasks=There are no tasks submitted for the world you are in!
 mawm.command.execute.usage=execute usage
+
 mawm.cubewand.setpos1=Set Cube Position 1 (%d, %d, %d)
 mawm.cubewand.setpos2=Set Cube Position 2 (%d, %d, %d)
 mawm.cubewand.no_cubewandpos1=Cube Position 1 not set!
 mawm.cubewand.no_cubewandpos2=Cube Position 2 not set!
+
 mawm.command.cubepos1.usage=Usage: /cubepos1 <x> <y> <z>
 mawm.command.cubepos1.set=Set Cube Position 1 %s %s %s
 mawm.command.cubepos1.invalid_args=Got invalid arguments for /cubepos1
 mawm.command.cubepos2.usage=Usage: /cubepos2 <x> <y> <z>
 mawm.command.cubepos2.set=Set Cube Position 2 %s %s %s
 mawm.command.cubepos2.invalid_args=Got invalid arguments for /cubepos2
+
 mawm.command.expand.invalid_dir=Got invalid args for expand! %s
 mawm.command.expand.invalid_value=Got invalid amount to expand by! %s
+
 mawm.command.queued=Queued command!
+
 mawm.command.cut.usage=cut usage
+
 mawm.command.copy.usage=copy usage
 mawm.command.copy.no_args=Movement vector not supplied! Please say where to move the area eg: /mawm copy 0 1 0
+
 mawm.command.regen.usage=regen usage
+
 mawm.command.moveregen.usage=moveregen usage
 mawm.command.moveregen.no_args=Movement vector not supplied! Please say where to move the area eg: /mawm copy 0 1 0
+
 mawm.command.set.usage=set usage
 mawm.command.set.no_args=Missing block argument for set command!
+
 mawm.command.replace.usage=replace usage
 mawm.command.replace.no_args=Missing block arguments for replace command!

@@ -5,6 +5,8 @@ import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.converter.lib.util.edittask.CutEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.converter.task.RelocateTaskRequest;
+import io.github.notstirred.mawm.converter.task.source.WorldTaskSource;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.command.CommandBase;
@@ -13,6 +15,9 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.WorldServer;
+
+import java.util.Collections;
 
 public class CommandCut extends CommandBase {
     @Override
@@ -55,7 +60,8 @@ public class CommandCut extends CommandBase {
             } else if (args.length == 0) {
             } //doing a cut from wandpos1 to wandpos2 WITHOUT an offset
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new CutEditTask(box, offset));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new CutEditTask(box, offset)), true,
+                new WorldTaskSource(((WorldServer) player.getEntityWorld())), MAWM.INSTANCE.workingDirectory));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));

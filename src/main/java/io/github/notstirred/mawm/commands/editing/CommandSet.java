@@ -5,6 +5,8 @@ import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.converter.lib.util.edittask.SetEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
+import io.github.notstirred.mawm.converter.task.RelocateTaskRequest;
+import io.github.notstirred.mawm.converter.task.source.WorldTaskSource;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import io.github.notstirred.mawm.util.MutablePair;
 import net.minecraft.block.Block;
@@ -15,6 +17,9 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.WorldServer;
+
+import java.util.Collections;
 
 public class CommandSet extends CommandBase {
     @Override
@@ -54,7 +59,8 @@ public class CommandSet extends CommandBase {
 
             @SuppressWarnings("deprecation")
             int id = Block.BLOCK_STATE_IDS.get(state);
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(sender, new SetEditTask(box, (byte)(id >> 4 & 255), (byte)(id & 15)));
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new SetEditTask(box, (byte)(id >> 4 & 255), (byte)(id & 15))), true,
+                new WorldTaskSource(((WorldServer) player.getEntityWorld())), MAWM.INSTANCE.workingDirectory));
         }
         if(MAWM.isQueueMode) {
             sender.sendMessage(new TextComponentTranslation("mawm.command.queued"));

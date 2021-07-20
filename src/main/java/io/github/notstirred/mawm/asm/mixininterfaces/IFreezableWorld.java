@@ -3,6 +3,8 @@ package io.github.notstirred.mawm.asm.mixininterfaces;
 import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 import cubicchunks.regionlib.impl.EntryLocation3D;
+import io.github.notstirred.mawm.converter.task.MergeTaskRequest;
+import io.github.notstirred.mawm.converter.task.TaskRequest;
 import io.github.notstirred.mawm.util.FreezableBox;
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos;
 import io.github.opencubicchunks.cubicchunks.core.world.cube.Cube;
@@ -16,37 +18,31 @@ public interface IFreezableWorld {
 
 
     enum ManipulateStage { READY, STARTED,
-        WAITING_SRC_SAVE,   WAITING_SRC_SAVE_UNDO,  WAITING_SRC_SAVE_REDO,
-        CONVERTING,         CONVERTING_UNDO,        CONVERTING_REDO,
-        CONVERT_FINISHED,   CONVERT_UNDO_FINISHED,  CONVERT_REDO_FINISHED,
+        WAITING_SRC_SAVE, WAITING_SRC_SAVE_UNDO_REDO,
+        CONVERTING, CONVERTING_UNDOREDO,
+        CONVERT_FINISHED, CONVERT_UNDOREDO_FINISHED,
         REGION_SWAP_FINISHED, RELOADING_CUBES
     }
 
     void requestTasksExecute();
-    void requestUndoTasksExecute();
-    void requestRedoTasksExecute();
+    void requestUndoRedoTasksExecute();
 
     boolean isTasksExecuteRequested();
-    boolean isUndoTasksExecuteRequested();
-    boolean isRedoTasksExecuteRequested();
+    boolean isUndoRedoTasksExecuteRequested();
 
-    void convertCommand();
-    void undoConvertCommand();
-    void redoConvertCommand();
+    void taskStart();
+    void undoRedoStart();
 
     void startConverter();
-    void startUndoConverter();
-    void startRedoConverter();
+    void startUndoRedoConverter();
 
     void swapModifiedRegionFilesForTasks();
 
-    void addTask(ICommandSender sender, EditTask task);
-    void addUndoTask(ICommandSender sender, List<EditTask> undoTasks);
-    void addRedoTask(ICommandSender sender, List<EditTask> redoTasks);
+    void addTask(TaskRequest taskRequest);
+    void addUndoRedoTask(MergeTaskRequest taskRequest);
 
-    boolean hasDeferredTasks();
-    boolean hasDeferredUndoTasks();
-    boolean hasDeferredRedoTasks();
+    boolean hasDeferredRequests();
+    boolean hasDeferredUndoRedoRequests();
 
     ManipulateStage getManipulateStage();
     void setManipulateStage(ManipulateStage stage);
