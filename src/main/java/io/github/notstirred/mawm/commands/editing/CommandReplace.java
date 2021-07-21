@@ -54,17 +54,28 @@ public class CommandReplace extends CommandBase {
                 throw new CommandException("mawm.command.replace.no_args");
             }
 
-            IBlockState inState;
+            byte inBlockId;
+            byte inBlockMeta;
+
             if(args[0].contains(":")) {
                 String[] split = args[0].split(":");
                 Block inBlock = CommandBase.getBlockByText(sender, split[0]);
-                inState = CommandBase.convertArgToBlockState(inBlock, split[1]);
+                IBlockState inState = CommandBase.convertArgToBlockState(inBlock, split[1]);
+
+                @SuppressWarnings("deprecation")
+                int inId = Block.BLOCK_STATE_IDS.get(inState);
+                inBlockId = (byte) (inId >> 4 & 255);
+                inBlockMeta = (byte) (inId & 15);
             } else {
                 Block inBlock = CommandBase.getBlockByText(sender, args[0]);
-                inState = inBlock.getDefaultState();
+                IBlockState inState = inBlock.getDefaultState();
+
+                @SuppressWarnings("deprecation")
+                int inId = Block.BLOCK_STATE_IDS.get(inState);
+                inBlockId = (byte) (inId >> 4 & 255);
+                inBlockMeta = -1; //sentinel flag for ALL block metadata values
             }
-            @SuppressWarnings("deprecation")
-            int inId = Block.BLOCK_STATE_IDS.get(inState);
+
 
             IBlockState outState;
             if(args[1].contains(":")) {
@@ -79,7 +90,7 @@ public class CommandReplace extends CommandBase {
             int outId = Block.BLOCK_STATE_IDS.get(outState);
 
             ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new ReplaceEditTask(box,
-                    (byte) (inId >> 4 & 255), (byte) (inId & 15),
+                    inBlockId, inBlockMeta,
                     (byte) (outId >> 4 & 255), (byte) (outId & 15)
             )), true, new WorldTaskSource(((WorldServer) player.getEntityWorld())), MAWM.INSTANCE.workingDirectory));
         }
