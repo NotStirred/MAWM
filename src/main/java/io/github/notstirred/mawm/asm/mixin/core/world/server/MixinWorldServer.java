@@ -249,12 +249,7 @@ public abstract class MixinWorldServer extends World implements IFreezableWorld,
 
                 MAWM.LOGGER.trace("Moved world region file into backup loc");
             } catch (IOException e) {
-                MAWM.LOGGER.error("Couldn't find existing region file to move to backups at " + worldVecPath + ". " + e.getMessage());
-                e.printStackTrace();
-                sender.sendMessage(TextComponentHelper.createComponentTranslation(sender,
-                    "mawm.execute.error.missing_existing_region",
-                    ("(" + vec.getX() + ", " + vec.getY() + ", " + vec.getZ() + ")")
-                ));
+                MAWM.LOGGER.trace("Couldn't find existing region file to move to backups at " + worldVecPath + ". This is ok if the region didn't exist before. " + e.getMessage());
             }
 
             try {
