@@ -57,3 +57,5 @@ mawm.command.set.no_args=Missing block argument for set command!
 
 mawm.command.replace.usage=replace usage
 mawm.command.replace.no_args=Missing block arguments for replace command!
+
+mawm.command.repopulate.usage=repopulate usage
