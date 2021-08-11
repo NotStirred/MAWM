@@ -21,7 +21,7 @@ public interface IFreezableWorld {
         WAITING_SRC_SAVE, WAITING_SRC_SAVE_UNDO_REDO,
         CONVERTING, CONVERTING_UNDOREDO,
         CONVERT_FINISHED, CONVERT_UNDOREDO_FINISHED,
-        REGION_SWAP_FINISHED, RELOADING_CUBES
+        RELOADING_CUBES
     }
 
     void requestTasksExecute();

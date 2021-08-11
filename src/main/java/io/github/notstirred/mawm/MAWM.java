@@ -116,7 +116,7 @@ public class MAWM {
                 try {
                     world.setSrcSavingLocked(true);
                     SharedCachedRegionProvider.clearRegions();
-                    LOGGER.debug("REGIONS CLEARED");
+                    LOGGER.trace("REGIONS CLEARED");
                     world.setSrcFrozen(true);
                     world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING);
                     world.startConverter();
@@ -124,7 +124,7 @@ public class MAWM {
                     LOGGER.fatal(e);
                 }
             } else {
-                LOGGER.debug("waiting for affected cubes & columns to be saved");
+                LOGGER.trace("waiting for affected cubes & columns to be saved");
             }
         } else if(((IFreezableWorld)event.world).getManipulateStage() == IFreezableWorld.ManipulateStage.WAITING_SRC_SAVE_UNDO_REDO) {
             IRegionCubeIO regionCubeIO = ((IRegionCubeIO) ((AccessCubeProviderServer) ((WorldServer) event.world).getChunkProvider()).getCubeIO());
@@ -132,7 +132,7 @@ public class MAWM {
                 try {
                     world.setSrcSavingLocked(true);
                     SharedCachedRegionProvider.clearRegions();
-                    LOGGER.debug("REGIONS CLEARED");
+                    LOGGER.trace("REGIONS CLEARED");
                     world.setSrcFrozen(true);
                     world.setManipulateStage(IFreezableWorld.ManipulateStage.CONVERTING_UNDOREDO);
                     world.startUndoRedoConverter();
@@ -140,7 +140,7 @@ public class MAWM {
                     LOGGER.fatal(e);
                 }
             } else {
-                LOGGER.debug("waiting for affected cubes & columns to be saved");
+                LOGGER.trace("waiting for affected cubes & columns to be saved");
             }
         }
         if(world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_FINISHED || world.getManipulateStage() == IFreezableWorld.ManipulateStage.CONVERT_UNDOREDO_FINISHED) {
@@ -156,8 +156,7 @@ public class MAWM {
                 ((IFreezableWorld) event.world).swapModifiedRegionFilesForTasks();
             }
 
-            LOGGER.debug("Region files copied");
-            world.setManipulateStage(IFreezableWorld.ManipulateStage.REGION_SWAP_FINISHED);
+            LOGGER.trace("Region files copied");
 
             world.setSrcSavingLocked(false);
             world.setSrcSaveAddingLocked(false);
