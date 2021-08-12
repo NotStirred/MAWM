@@ -1,5 +1,6 @@
 package io.github.notstirred.mawm;
 
+import cubicchunks.converter.lib.util.ImmutablePair;
 import cubicchunks.regionlib.lib.provider.SharedCachedRegionProvider;
 import io.github.notstirred.mawm.asm.mixin.core.cubicchunks.server.AccessCubeProviderServer;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableCubeProviderServer;
@@ -13,9 +14,15 @@ import io.github.notstirred.mawm.commands.debug.CommandUnfreeze;
 import io.github.notstirred.mawm.converter.task.TaskRequest;
 import io.github.notstirred.mawm.converter.task.source.SimpleTaskSource;
 import io.github.notstirred.mawm.util.LimitedFifoQueue;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+import net.minecraft.block.Block;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -25,9 +32,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /*
 Stop dst cubes from being saved
@@ -82,6 +87,8 @@ public class MAWM {
 
     @Mod.Instance(MOD_ID)
     public static MAWM INSTANCE;
+
+    public final Map<String, ImmutablePair<Byte, List<Byte>>> nameToIDMetas = new Object2ReferenceOpenHashMap<>();
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent evt)
@@ -173,6 +180,39 @@ public class MAWM {
                 world.undoRedoStart();
             else
                 world.setManipulateStage(IFreezableWorld.ManipulateStage.READY);
+        }
+    }
+
+    @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        // Initialise block mappings to ids for use in commands
+        NonNullList<ItemStack> list = NonNullList.create();
+        for (Block block : Block.REGISTRY) {
+            block.getSubBlocks(CreativeTabs.SEARCH, list);
+            if(list.isEmpty()) {
+                int id = Block.BLOCK_STATE_IDS.get(block.getDefaultState());
+                String displayName = block.getLocalizedName().replaceAll(" ", "_").toLowerCase(Locale.ROOT);
+                nameToIDMetas.computeIfAbsent(displayName, (name) -> new ImmutablePair<>((byte)(id >> 4 & 255), new ArrayList<>())).getSecond().add((byte)(id & 15));
+            } else {
+                for (int i = 0; i < Math.ceil(16.0 / list.size()); i++) {
+                    int itemIdx = 0;
+                    for (ItemStack itemStack : list) {
+
+                        if(i*list.size() + itemIdx >= 16)
+                            break;
+                        int meta = itemStack.getItemDamage() + i*list.size(); //metadata
+
+                        String displayName = itemStack.getDisplayName()
+                            .replaceAll(" ", "_").toLowerCase(Locale.ROOT);
+
+                        byte id = (byte) ((Block.BLOCK_STATE_IDS.get(block.getDefaultState()) >> 4) & 0xFF);
+                        nameToIDMetas.computeIfAbsent(displayName, (name) -> new ImmutablePair<>(id, new ArrayList<>())).getSecond().add((byte)(meta & 0xF));
+                        itemIdx++;
+                    }
+                }
+            }
+
+            list.clear();
         }
     }
 

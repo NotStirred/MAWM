@@ -57,5 +57,8 @@ mawm.command.set.no_args=Missing block argument for set command!
 
 mawm.command.replace.usage=replace usage
 mawm.command.replace.no_args=Missing block arguments for replace command!
+mawm.command.replace.invalid_block=No block with name %s
+mawm.command.replace.invalid_meta=Block %s does not have metadata %s
+mawm.command.replace.invalid_meta.nan=Metadata %s is not a number
 
 mawm.command.repopulate.usage=repopulate usage

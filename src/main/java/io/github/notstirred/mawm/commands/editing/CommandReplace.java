@@ -1,16 +1,15 @@
 package io.github.notstirred.mawm.commands.editing;
 
 import cubicchunks.converter.lib.util.BoundingBox;
+import cubicchunks.converter.lib.util.ImmutablePair;
 import cubicchunks.converter.lib.util.Vector3i;
-import cubicchunks.converter.lib.util.edittask.ReplaceEditTask;
 import io.github.notstirred.mawm.MAWM;
 import io.github.notstirred.mawm.asm.mixininterfaces.IFreezableWorld;
 import io.github.notstirred.mawm.converter.task.RelocateTaskRequest;
+import io.github.notstirred.mawm.converter.task.extra.ManyReplaceEditTask;
 import io.github.notstirred.mawm.converter.task.source.WorldTaskSource;
 import io.github.notstirred.mawm.input.CubeWandHandler;
 import io.github.notstirred.mawm.util.MutablePair;
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -20,6 +19,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.WorldServer;
 
 import java.util.Collections;
+import java.util.List;
 
 public class CommandReplace extends CommandBase {
     @Override
@@ -55,43 +55,74 @@ public class CommandReplace extends CommandBase {
             }
 
             byte inBlockId;
-            byte inBlockMeta;
+            List<Byte> inBlockMetas;
+            {
+                String[] splitInBlock = args[0].split(":");
+                ImmutablePair<Byte, List<Byte>> idMetaPair = MAWM.INSTANCE.nameToIDMetas.get(splitInBlock[0]);
+                if(idMetaPair == null) {
+                    sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_block", args[0]));
+                    return;
+                }
 
-            if(args[0].contains(":")) {
-                String[] split = args[0].split(":");
-                Block inBlock = CommandBase.getBlockByText(sender, split[0]);
-                IBlockState inState = CommandBase.convertArgToBlockState(inBlock, split[1]);
+                inBlockId = idMetaPair.getFirst();
 
-                @SuppressWarnings("deprecation")
-                int inId = Block.BLOCK_STATE_IDS.get(inState);
-                inBlockId = (byte) (inId >> 4 & 255);
-                inBlockMeta = (byte) (inId & 15);
-            } else {
-                Block inBlock = CommandBase.getBlockByText(sender, args[0]);
-                IBlockState inState = inBlock.getDefaultState();
-
-                @SuppressWarnings("deprecation")
-                int inId = Block.BLOCK_STATE_IDS.get(inState);
-                inBlockId = (byte) (inId >> 4 & 255);
-                inBlockMeta = -1; //sentinel flag for ALL block metadata values
+                List<Byte> validInMetadataValues = idMetaPair.getSecond();
+                if (splitInBlock.length == 1) {
+                    inBlockMetas = validInMetadataValues; //default to accept all input metadata values
+                } else {
+                    try {
+                        int metaIndex = Integer.parseInt(splitInBlock[1]);
+                        if (metaIndex < 0 || metaIndex >= validInMetadataValues.size()) {
+                            sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_meta", splitInBlock[0], splitInBlock[1]));
+                            return;
+                        }
+                        inBlockMetas = Collections.singletonList(validInMetadataValues.get(metaIndex));
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_meta.nan", splitInBlock[1]));
+                        return;
+                    }
+                }
             }
 
+            byte outBlockId;
+            byte outBlockMeta;
+            {
+                String[] splitOutBlock = args[1].split(":");
+                ImmutablePair<Byte, List<Byte>> outMetaPair = MAWM.INSTANCE.nameToIDMetas.get(splitOutBlock[0]);
+                if(outMetaPair == null) {
+                    sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_block", splitOutBlock[0]));
+                    return;
+                }
 
-            IBlockState outState;
-            if(args[1].contains(":")) {
-                String[] split = args[1].split(":");
-                Block inBlock = CommandBase.getBlockByText(sender, split[0]);
-                outState = CommandBase.convertArgToBlockState(inBlock, split[1]);
-            } else {
-                Block inBlock = CommandBase.getBlockByText(sender, args[1]);
-                outState = inBlock.getDefaultState();
+                outBlockId = outMetaPair.getFirst();
+
+                List<Byte> validOutMetadataValues = outMetaPair.getSecond();
+                if (splitOutBlock.length == 1) {
+                    outBlockMeta = validOutMetadataValues.get(0); //default to the first valid metadata value
+                } else {
+                    try {
+                        int metaIndex = Integer.parseInt(splitOutBlock[1]);
+                        if (metaIndex < 0 || metaIndex >= validOutMetadataValues.size()) {
+                            sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_meta", splitOutBlock[0], splitOutBlock[1]));
+                            return;
+                        }
+                        outBlockMeta = validOutMetadataValues.get(metaIndex);
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(new TextComponentTranslation("mawm.command.replace.invalid_meta.nan", splitOutBlock[1]));
+                        return;
+                    }
+                }
             }
-            @SuppressWarnings("deprecation")
-            int outId = Block.BLOCK_STATE_IDS.get(outState);
 
-            ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new ReplaceEditTask(box,
-                    inBlockId, inBlockMeta,
-                    (byte) (outId >> 4 & 255), (byte) (outId & 15)
+            byte[] inBlockIDPrimitiveArray = new byte[inBlockMetas.size()];
+            byte[] inBlockMetaPrimitiveArray = new byte[inBlockMetas.size()];
+            for (int i = 0, inBlockMetasSize = inBlockMetas.size(); i < inBlockMetasSize; i++) {
+                inBlockIDPrimitiveArray[i] = inBlockId;
+                inBlockMetaPrimitiveArray[i] = inBlockMetas.get(i);
+            }
+            ((IFreezableWorld) sender.getEntityWorld()).addTask(new RelocateTaskRequest(sender, Collections.singletonList(new ManyReplaceEditTask(box,
+                inBlockIDPrimitiveArray, inBlockMetaPrimitiveArray,
+                outBlockId, outBlockMeta
             )), true, new WorldTaskSource(((WorldServer) player.getEntityWorld())), MAWM.INSTANCE.workingDirectory));
         }
         if(MAWM.isQueueMode) {
